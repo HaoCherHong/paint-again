@@ -1,0 +1,20 @@
+---
+/** One numbered feature: text on one side, a visual (slot) on the other; `flip` swaps the sides on wide screens. */
+interface Props { index: string; title: string; body: string; points?: string[]; flip?: boolean }
+const { index, title, body, points = [], flip = false } = Astro.props;
+---
+<div class="grid items-center gap-10 md:grid-cols-12 md:gap-12">
+  <div class={`md:col-span-5 ${flip ? 'md:order-2 md:col-start-8' : ''}`}>
+    <p class="display text-sm italic muted">{index}</p>
+    <h3 class="display mt-2 text-3xl sm:text-4xl text-balance">{title}</h3>
+    <p class="mt-5 leading-relaxed muted text-pretty">{body}</p>
+    {points.length > 0 && (
+      <ul class="mt-5 space-y-1.5 text-sm">
+        {points.map((p) => <li class="flex gap-3"><span class="muted">—</span><span>{p}</span></li>)}
+      </ul>
+    )}
+  </div>
+  <div class={`min-w-0 md:col-span-7 ${flip ? 'md:order-1 md:col-start-1' : ''}`}>
+    <slot />
+  </div>
+</div>

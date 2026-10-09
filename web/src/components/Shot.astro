@@ -1,0 +1,9 @@
+---
+/** Theme-aware screenshot: `/screenshots/<name>-light.webp` with a dark variant for dark mode. */
+interface Props { name: string; alt: string; width: number; height: number; class?: string; eager?: boolean }
+const { name, alt, width, height, class: cls = '', eager = false } = Astro.props;
+---
+<picture>
+  <source srcset={`/screenshots/${name}-dark.webp`} media="(prefers-color-scheme: dark)" />
+  <img src={`/screenshots/${name}-light.webp`} alt={alt} width={width} height={height} loading={eager ? 'eager' : 'lazy'} class={cls} />
+</picture>

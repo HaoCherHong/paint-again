@@ -1,0 +1,57 @@
+---
+import Legal from '../../components/Legal.astro';
+import { LANGS, type Lang } from '../../i18n/ui';
+import { APP_NAME, SUPPORT_EMAIL, COPYRIGHT_HOLDER } from '../../site';
+export function getStaticPaths() { return LANGS.map((lang) => ({ params: { lang } })); }
+const lang = Astro.params.lang as Lang;
+const updated = '2026-09-07';
+---
+{lang === 'zh-Hant' ? (
+<Legal lang={lang} title="服務條款" description={`使用 ${APP_NAME} 的條款。`} path="terms-of-service/" updated={updated}>
+  <p>下載或使用 {APP_NAME}（以下稱「本 App」）即表示你同意以下條款。若你不同意，請勿使用本 App。</p>
+  <h2>授權</h2>
+  <p>在你遵守本條款的前提下，我們授予你一項非專屬、不可轉讓的授權，讓你在自己擁有或控制的 Mac 上安裝與使用本 App。透過 Mac App Store 取得的 App 亦受 Apple 的標準授權合約（Licensed Application End User License Agreement）約束；兩者衝突時以本條款為準（在 Apple 允許的範圍內）。</p>
+  <h2>你的內容</h2>
+  <p>你用本 App 建立或編輯的所有內容都屬於你。本 App 不會存取、傳送或宣稱擁有你的內容。</p>
+  <h2>限制</h2>
+  <ul>
+    <li>不得反組譯、反編譯或試圖取得本 App 的原始碼，法律明文允許者除外。</li>
+    <li>不得將本 App 或其任何部分轉售、出租或再散布。</li>
+    <li>不得使用本 App 從事違法行為。</li>
+  </ul>
+  <h2>免責聲明</h2>
+  <p>本 App 依「現狀」提供，不附帶任何明示或默示的擔保，包括但不限於適售性、特定目的適用性與不侵權。請自行備份重要檔案。</p>
+  <h2>責任限制</h2>
+  <p>在法律允許的最大範圍內，{COPYRIGHT_HOLDER} 對因使用或無法使用本 App 而生的任何間接、附帶、衍生或懲罰性損害不負責任，包括資料遺失。</p>
+  <h2>終止</h2>
+  <p>若你違反本條款，本授權自動終止。你可隨時刪除本 App 以終止授權。</p>
+  <h2>變更</h2>
+  <p>我們可能更新本條款；更新後會修改本頁與上方日期。繼續使用本 App 即表示接受更新後的條款。</p>
+  <h2>聯絡</h2>
+  <p>關於本條款的問題請來信 <a href={`mailto:${SUPPORT_EMAIL}`} class="link">{SUPPORT_EMAIL}</a>。</p>
+</Legal>
+) : (
+<Legal lang={lang} title="Terms of Service" description={`Terms for using ${APP_NAME}.`} path="terms-of-service/" updated={updated}>
+  <p>By downloading or using {APP_NAME} (the “App”) you agree to these terms. If you do not agree, do not use the App.</p>
+  <h2>License</h2>
+  <p>Subject to these terms, we grant you a non-exclusive, non-transferable license to install and use the App on Macs you own or control. Apps obtained through the Mac App Store are also governed by Apple’s Licensed Application End User License Agreement; where the two conflict, these terms prevail to the extent Apple permits.</p>
+  <h2>Your content</h2>
+  <p>Everything you create or edit with the App belongs to you. The App does not access, transmit or claim any rights in your content.</p>
+  <h2>Restrictions</h2>
+  <ul>
+    <li>Do not reverse engineer, decompile or attempt to derive the source code of the App except where the law expressly allows it.</li>
+    <li>Do not resell, rent or redistribute the App or any part of it.</li>
+    <li>Do not use the App for anything unlawful.</li>
+  </ul>
+  <h2>Disclaimer</h2>
+  <p>The App is provided “as is”, without warranty of any kind, express or implied, including merchantability, fitness for a particular purpose and non-infringement. Keep backups of files that matter to you.</p>
+  <h2>Limitation of liability</h2>
+  <p>To the fullest extent permitted by law, {COPYRIGHT_HOLDER} is not liable for any indirect, incidental, consequential or punitive damages, including loss of data, arising from your use of or inability to use the App.</p>
+  <h2>Termination</h2>
+  <p>This license ends automatically if you breach these terms. You may end it at any time by deleting the App.</p>
+  <h2>Changes</h2>
+  <p>We may update these terms; when we do, we update this page and the date above. Continued use of the App means you accept the updated terms.</p>
+  <h2>Contact</h2>
+  <p>Questions about these terms: <a href={`mailto:${SUPPORT_EMAIL}`} class="link">{SUPPORT_EMAIL}</a>.</p>
+</Legal>
+)}

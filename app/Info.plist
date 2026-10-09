@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleExecutable</key><string>Paint</string>
+    <key>CFBundleIdentifier</key><string>com.haocherhong.paintagain</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundleName</key><string>Paint Again</string>
+    <key>CFBundleDisplayName</key><string>Paint Again</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Hao-Cher Hong</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.graphics-design</string>
+    <key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
+    <key>ITSAppUsesNonExemptEncryption</key><false/>
+    <key>CFBundleLocalizations</key>
+    <array><string>en</string><string>zh-Hant</string></array>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key><string>PNG</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>NSDocumentClass</key><string>Paint.PaintDocument</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key><array><string>public.png</string></array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key><string>JPEG</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>NSDocumentClass</key><string>Paint.PaintDocument</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key><array><string>public.jpeg</string></array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key><string>BMP</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>NSDocumentClass</key><string>Paint.PaintDocument</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key><array><string>com.microsoft.bmp</string></array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key><string>GIF</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>NSDocumentClass</key><string>Paint.PaintDocument</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key><array><string>com.compuserve.gif</string></array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key><string>TIFF</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>NSDocumentClass</key><string>Paint.PaintDocument</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key><array><string>public.tiff</string></array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key><string>HEIC</string>
+            <key>CFBundleTypeRole</key><string>Viewer</string>
+            <key>NSDocumentClass</key><string>Paint.PaintDocument</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key><array><string>public.heic</string></array>
+        </dict>
+    </array>
+</dict>
+</plist>

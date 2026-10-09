@@ -1,0 +1,61 @@
+---
+import Legal from '../../components/Legal.astro';
+import { LANGS, type Lang } from '../../i18n/ui';
+import { APP_NAME, SUPPORT_EMAIL } from '../../site';
+export function getStaticPaths() { return LANGS.map((lang) => ({ params: { lang } })); }
+const lang = Astro.params.lang as Lang;
+const updated = '2026-09-07';
+---
+{lang === 'zh-Hant' ? (
+<Legal lang={lang} title="隱私權政策" description={`${APP_NAME} 不收集、不傳送任何個人資料。所有影像處理都在你的裝置上完成。`} path="privacy-policy/" updated={updated}>
+  <p>{APP_NAME}（以下稱「本 App」）是一款在你的 Mac 上本機執行的繪圖軟體。本政策說明本 App 如何處理資料。簡單地說：本 App 不收集任何資料。</p>
+  <h2>我們不收集的資料</h2>
+  <ul>
+    <li>本 App 不需要帳號，也沒有登入功能。</li>
+    <li>本 App 不會將你的圖片、繪圖內容或任何檔案傳送到我們或第三方的伺服器。</li>
+    <li>本 App 不使用分析工具、廣告 SDK 或追蹤技術。</li>
+    <li>本 App 不會主動建立網路連線。</li>
+  </ul>
+  <h2>在裝置上處理的資料</h2>
+  <ul>
+    <li>你開啟、編輯與儲存的影像只存在於你選擇的位置。</li>
+    <li>「移除背景」功能使用 macOS 內建的影像辨識，在你的裝置上執行，不會離開你的電腦。</li>
+    <li>「設定為桌面背景」會在 macOS 的應用程式支援資料夾中儲存一份影像副本，以便系統顯示桌面。</li>
+    <li>「分享」功能會把影像交給你在 macOS 分享面板中選擇的 App 或服務；該服務的隱私政策適用於後續處理。</li>
+  </ul>
+  <h2>App Store</h2>
+  <p>透過 Mac App Store 下載本 App 時，Apple 可能依其隱私權政策處理與下載、更新相關的資料。我們不會從 Apple 取得任何可識別你身分的資訊。</p>
+  <h2>兒童</h2>
+  <p>本 App 不收集任何人的資料，包含兒童。</p>
+  <h2>政策變更</h2>
+  <p>若本政策有變更，我們會更新本頁並修改上方的日期。</p>
+  <h2>聯絡我們</h2>
+  <p>如有任何關於隱私的問題，請來信 <a href={`mailto:${SUPPORT_EMAIL}`} class="link">{SUPPORT_EMAIL}</a>。</p>
+</Legal>
+) : (
+<Legal lang={lang} title="Privacy Policy" description={`${APP_NAME} collects and transmits no personal data. All image processing happens on your device.`} path="privacy-policy/" updated={updated}>
+  <p>{APP_NAME} (the “App”) is a drawing application that runs locally on your Mac. This policy explains how the App handles data. In short: the App collects no data.</p>
+  <h2>Data we do not collect</h2>
+  <ul>
+    <li>The App requires no account and has no sign-in.</li>
+    <li>The App never sends your images, drawings or files to our servers or to any third party.</li>
+    <li>The App contains no analytics, advertising SDKs or tracking technology.</li>
+    <li>The App does not initiate network connections.</li>
+  </ul>
+  <h2>Data processed on your device</h2>
+  <ul>
+    <li>Images you open, edit and save exist only where you choose to store them.</li>
+    <li>“Remove background” uses the image recognition built into macOS and runs on your device; nothing leaves your computer.</li>
+    <li>“Set as desktop picture” stores a copy of the image in the macOS Application Support folder so the system can display it.</li>
+    <li>“Share” hands the image to the app or service you pick in the macOS share sheet; that service’s privacy policy governs what happens next.</li>
+  </ul>
+  <h2>App Store</h2>
+  <p>When you download the App from the Mac App Store, Apple may process data related to the download and updates under its own privacy policy. We receive no information from Apple that identifies you.</p>
+  <h2>Children</h2>
+  <p>The App collects no data from anyone, including children.</p>
+  <h2>Changes</h2>
+  <p>If this policy changes, we will update this page and the date above.</p>
+  <h2>Contact</h2>
+  <p>Questions about privacy: <a href={`mailto:${SUPPORT_EMAIL}`} class="link">{SUPPORT_EMAIL}</a>.</p>
+</Legal>
+)}

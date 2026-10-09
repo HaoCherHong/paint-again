@@ -1,0 +1,183 @@
+---
+import Base from '../../layouts/Base.astro';
+import Feature from '../../components/Feature.astro';
+import FeatureRow from '../../components/FeatureRow.astro';
+import Placeholder from '../../components/Placeholder.astro';
+import Shot from '../../components/Shot.astro';
+import { LANGS, type Lang, t } from '../../i18n/ui';
+import { APP_NAME, APP_STORE_URL, SITE_URL } from '../../site';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.params.lang as Lang;
+// Flip to true once public/videos/timelapse.mp4 exists.
+const SHOW_TIMELAPSE = false;
+const tr = t(lang);
+
+// Keyboard shortcuts shown in the Shortcuts feature: keys rendered as keycaps, joined by `+` when
+// `combo` is set, followed by a mouse action (click / drag) when `action` is set.
+type Shortcut = { keys: string[]; combo?: boolean; action?: 'k.click' | 'k.drag'; label: 'k.pan' | 'k.zoom' | 'k.selectAll' | 'k.size' | 'k.opacityStep' | 'k.opacity' | 'k.line' | 'k.pick' | 'k.brush' | 'k.eraser' | 'k.fill' | 'k.text' };
+const shortcuts: Shortcut[] = [
+  { keys: ['Space'], action: 'k.drag', label: 'k.pan' },
+  { keys: ['⌘', 'Space'], combo: true, action: 'k.click', label: 'k.zoom' },
+  { keys: ['⌘', 'A'], combo: true, label: 'k.selectAll' },
+  { keys: ['[', ']'], label: 'k.size' },
+  { keys: ['⇧', '[', ']'], label: 'k.opacityStep' },
+  { keys: ['1', '…', '0'], label: 'k.opacity' },
+  { keys: ['⇧'], action: 'k.click', label: 'k.line' },
+  { keys: ['⌥'], action: 'k.click', label: 'k.pick' },
+  { keys: ['B'], label: 'k.brush' },
+  { keys: ['E'], label: 'k.eraser' },
+  { keys: ['G'], label: 'k.fill' },
+  { keys: ['T'], label: 'k.text' },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: APP_NAME,
+  applicationCategory: 'DesignApplication',
+  operatingSystem: 'macOS 14.0 or later',
+  offers: { '@type': 'Offer', price: '2.99', priceCurrency: 'USD' },
+  description: tr('meta.description'),
+  url: new URL(`/${lang}/`, SITE_URL).href,
+  screenshot: new URL('/screenshots/hero-light.jpg', SITE_URL).href,
+};
+---
+<Base lang={lang} title={`${APP_NAME} - ${tr('meta.title')}`} description={tr('meta.description')} path="" jsonLd={jsonLd} verbatimTitle>
+  <!-- Hero -->
+  <section class="mx-auto max-w-6xl px-6 pb-16 pt-12 text-center sm:pt-20">
+    <!-- The icon PNG carries its own tile, corners and shadow: no styling on the element. -->
+    <img src="/icon-256.png" alt="" width="128" height="128" class="mx-auto" />
+    <p class="mt-4 text-xs uppercase tracking-[0.25em] muted">{tr('hero.eyebrow')}</p>
+    <h1 class="display mx-auto mt-6 max-w-4xl text-5xl leading-[1.12] sm:text-7xl">{tr('hero.title1')}<br />{tr('hero.title2')}</h1>
+    <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href={APP_STORE_URL} class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.9-1.7 0-3.2 1-4.1 2.5-1.8 3-.5 7.6 1.3 10.1.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.3.8c1.4 0 2.2-1.3 3-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4zM14 5.2c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.5 2.9-1.3z"/></svg>
+        {tr('hero.cta')}
+      </a>
+      <a href="#features" class="btn-secondary">{tr('hero.secondary')}</a>
+    </div>
+    <p class="mt-5 text-xs muted">{tr('hero.note')}</p>
+  </section>
+
+  {SHOW_TIMELAPSE && (
+    <!-- Time-lapse. The placeholder is the poster; the video appears over it once /videos/timelapse.mp4 loads. -->
+    <section class="mx-auto max-w-6xl px-6">
+      <figure>
+        <div class="relative overflow-hidden rounded-sm">
+          <Placeholder alt={tr('video.alt')} ratio="16 / 10" />
+          <div class="absolute inset-0" hidden>
+            <video class="h-full w-full object-cover" autoplay muted loop playsinline preload="metadata" onloadeddata="this.parentNode.hidden=false">
+              <source src="/videos/timelapse.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+        <figcaption class="mt-4 flex flex-col gap-1 text-sm sm:flex-row sm:items-baseline sm:justify-between">
+          <span class="display text-base">{tr('video.title')}</span>
+          <span class="muted">{tr('video.caption')}</span>
+        </figcaption>
+      </figure>
+    </section>
+  )}
+
+  <!-- On-device, no cloud -->
+  <section class="mx-auto max-w-6xl px-6 pt-8">
+    <div class="stroke-rule w-16"></div>
+    <h2 class="display mt-6 max-w-3xl text-4xl leading-tight text-balance sm:text-5xl">{tr('local.title')}</h2>
+    <p class="mt-6 max-w-xl text-lg leading-relaxed muted text-pretty">{tr('local.body')}</p>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="mx-auto max-w-6xl px-6 pt-32">
+    <div class="stroke-rule w-16"></div>
+    <h2 class="display mt-6 text-4xl sm:text-5xl">{tr('features.title')}</h2>
+
+    <div class="mt-20 space-y-28">
+      <!-- 01 · Familiar: the whole toolbar, full width -->
+      <div>
+        <div class="grid gap-6 md:grid-cols-12">
+          <div class="md:col-span-5">
+            <p class="display text-sm italic muted">01</p>
+            <h3 class="display mt-2 text-3xl sm:text-4xl">{tr('f.familiar.title')}</h3>
+          </div>
+          <p class="leading-relaxed muted md:col-span-6 md:col-start-7 md:pt-8">{tr('f.familiar.body')}</p>
+        </div>
+        <Shot name="ribbon" alt={tr('f.familiar.alt')} width={2560} height={480} class="mt-8 block w-full rounded-sm hairline" />
+      </div>
+
+      <!-- 02 · Brushes and shapes -->
+      <FeatureRow index="02" title={tr('f.brushes.title')} body={tr('f.brushes.body')} points={[tr('f.brushes.p1'), tr('f.brushes.p3')]} flip>
+        <div class="grid grid-cols-2 items-start gap-4">
+          <Shot name="brushes" alt={tr('f.brushes.alt')} width={980} height={810} class="block w-full rounded-sm hairline" />
+          <Shot name="shapes" alt={tr('f.shapes.alt')} width={1260} height={800} class="mt-10 block w-full rounded-sm hairline" />
+        </div>
+      </FeatureRow>
+
+      <!-- 03 · Layers panel -->
+      <FeatureRow index="03" title={tr('f.layers.title')} body={tr('f.layers.body')} points={[tr('f.layers.p1'), tr('f.layers.p2')]}>
+        <Shot name="layers" alt={tr('f.layers.alt')} width={588} height={430} class="mx-auto block w-full max-w-md rounded-sm hairline" />
+      </FeatureRow>
+
+      <!-- 04 · Mac shortcuts -->
+      <FeatureRow index="04" title={tr('f.shortcuts.title')} body={tr('f.shortcuts.body')} flip>
+        <ul class="divide-y divide-line border-y border-line text-sm dark:divide-line-dark dark:border-line-dark">
+          {shortcuts.map((s) => (
+            <li class="flex items-center justify-between gap-4 py-3">
+              <span class="flex items-center gap-1.5 whitespace-nowrap">
+                {s.keys.map((k, i) => (
+                  <>
+                    {i > 0 && s.combo && <span class="muted">+</span>}
+                    {k === '…' ? <span class="muted">…</span> : <kbd class="key">{k}</kbd>}
+                  </>
+                ))}
+                {s.action && <span class="ml-1 muted">+ {tr(s.action)}</span>}
+              </span>
+              <span class="text-right muted">{tr(s.label)}</span>
+            </li>
+          ))}
+        </ul>
+      </FeatureRow>
+
+      <!-- 05 · Rulers and guides -->
+      <FeatureRow index="05" title={tr('f.guides.title')} body={tr('f.guides.body')}>
+        <Shot name="guides" alt={tr('f.guides.alt')} width={1400} height={1050} class="block w-full rounded-sm hairline" />
+      </FeatureRow>
+    </div>
+  </section>
+
+  <!-- The rest -->
+  <section class="mx-auto max-w-6xl px-6 pt-32">
+    <h2 class="display text-2xl muted">{tr('more.title')}</h2>
+    <div class="mt-8 grid gap-8 sm:grid-cols-3">
+      <Feature title={tr('f.bg.title')} body={tr('f.bg.body')} />
+      <Feature title={tr('f.formats.title')} body={tr('f.formats.body')} />
+      <Feature title={tr('f.native.title')} body={tr('f.native.body')} />
+    </div>
+  </section>
+
+  <section id="faq" class="mx-auto max-w-6xl px-6 pt-32">
+    <div class="grid gap-8 md:grid-cols-12">
+      <h2 class="display text-3xl md:col-span-4">{tr('faq.title')}</h2>
+      <dl class="divide-y divide-line dark:divide-line-dark md:col-span-7 md:col-start-6">
+        {[1, 2, 3].map((i) => (
+          <div class="py-5">
+            <dt class="display text-lg">{tr(`faq.q${i}` as any)}</dt>
+            <dd class="mt-1.5 leading-relaxed muted">{tr(`faq.a${i}` as any)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.75rem; height: 1.75rem; padding: 0 0.5rem;
+    border-radius: 0.3rem; font: 500 0.8rem/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    border: 1px solid var(--color-line);
+  }
+  @media (prefers-color-scheme: dark) { .key { border-color: var(--color-line-dark); } }
+</style>

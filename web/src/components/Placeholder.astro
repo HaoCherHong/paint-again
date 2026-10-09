@@ -1,0 +1,6 @@
+---
+/** Stand-in for a picture that is not ready yet. Nothing is drawn; `alt` says what the picture will show. */
+interface Props { alt: string; ratio?: string; class?: string }
+const { alt, ratio = '16 / 10', class: cls = '' } = Astro.props;
+---
+<div class={`hairline rounded-sm bg-panel dark:bg-panel-dark ${cls}`} style={`aspect-ratio: ${ratio}`} role="img" aria-label={alt} title={alt}></div>

@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+import { type Lang, t } from '../i18n/ui';
+interface Props { lang: Lang; title: string; description: string; path: string; updated: string }
+const { lang, title, description, path, updated } = Astro.props;
+const tr = t(lang);
+---
+<Base lang={lang} title={title} description={description} path={path}>
+  <article class="mx-auto max-w-3xl px-5 pt-16 prose-like">
+    <a href={`/${lang}/`} class="text-sm muted link">← {tr('legal.back')}</a>
+    <h1 class="display mt-4 text-4xl sm:text-5xl">{title}</h1>
+    <p class="mt-2 text-sm muted">{tr('legal.updated')}: {updated}</p>
+    <div class="mt-8 space-y-6 leading-relaxed [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-10 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1">
+      <slot />
+    </div>
+  </article>
+</Base>

@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+import { LANGS, type Lang, t, otherLang } from '../i18n/ui';
+import { SITE_URL, APP_NAME } from '../site';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  path: string; // page path without language prefix, e.g. "" or "privacy-policy/"
+  jsonLd?: Record<string, unknown>;
+  /** Use `title` verbatim as the document title (home page: keyword-first). */
+  verbatimTitle?: boolean;
+}
+const { lang, title, description, path, jsonLd, verbatimTitle = false } = Astro.props;
+const tr = t(lang);
+const canonical = new URL(`/${lang}/${path}`, SITE_URL).href;
+// Home: the SEO title as written; sub-pages: brand-last, joined per locale.
+const fullTitle = verbatimTitle ? title : (lang === 'zh-Hant' ? `${title}｜${APP_NAME}` : `${title} – ${APP_NAME}`);
+const year = new Date().getFullYear();
+---
+<!doctype html>
+<html lang={tr('htmlLang')}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {LANGS.map((l) => <link rel="alternate" hreflang={l} href={new URL(`/${l}/${path}`, SITE_URL).href} />)}
+    <link rel="alternate" hreflang="x-default" href={new URL(`/zh-Hant/${path}`, SITE_URL).href} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={APP_NAME} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/screenshots/hero-light.jpg', SITE_URL).href} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {lang === 'zh-Hant' && (
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600&display=swap" />
+      </>
+    )}
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <header>
+      <nav class="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
+        <a href={`/${lang}/`} class="display text-lg">{APP_NAME}</a>
+        <a href={`/${otherLang(lang)}/${path}`} class="text-sm muted link" lang={otherLang(lang)}>{t(otherLang(lang))('langName')}</a>
+      </nav>
+    </header>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="mt-32">
+      <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 border-t border-line px-6 py-10 text-sm muted dark:border-line-dark sm:flex-row sm:items-center">
+        <p>© {year} {APP_NAME}. {tr('footer.rights')}</p>
+        <div class="flex items-center gap-6">
+          <a href={`/${lang}/privacy-policy/`} class="link">{tr('footer.privacy')}</a>
+          <a href={`/${lang}/terms-of-service/`} class="link">{tr('footer.terms')}</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

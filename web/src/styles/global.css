@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Paper-and-graphite palette: the icon's tile colours for the dark ground, its coral → amber stroke as the only accent. */
+@theme {
+  --color-ground: #f3f2ee;
+  --color-ground-dark: #17191e;
+  --color-panel: #e9e7e1;
+  --color-panel-dark: #22252c;
+  --color-ink: #1b1b1b;
+  --color-ink-dark: #f4f2ee;
+  --color-muted: #6f6c66;
+  --color-muted-dark: #a3a39e;
+  --color-line: rgb(0 0 0 / 0.1);
+  --color-line-dark: rgb(255 255 255 / 0.1);
+  --color-coral: #e7593b;
+  --color-amber: #f6b73f;
+  --font-display: ui-serif, "New York", "Songti TC", "Noto Serif TC", Georgia, "Times New Roman", serif;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-ground text-ink antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  body { @apply bg-ground-dark text-ink-dark; }
+}
+
+.display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.01em; }
+/* Traditional Chinese pages load Noto Serif TC from Google Fonts (see Base.astro). */
+html[lang="zh-Hant"] .display { font-family: "Noto Serif TC", var(--font-display); letter-spacing: 0; }
+.muted { @apply text-muted dark:text-muted-dark; }
+.hairline { @apply border border-line dark:border-line-dark; }
+.link { @apply underline-offset-4 hover:underline; }
+/* Coral → amber, the stroke on the icon */
+.stroke-text { background: linear-gradient(90deg, var(--color-coral), var(--color-amber)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stroke-rule { height: 3px; border-radius: 999px; background: linear-gradient(90deg, var(--color-coral), var(--color-amber)); }
+
+.btn-primary, .btn-secondary { @apply inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium; }
+.btn-primary { @apply bg-ink text-ground hover:opacity-85 dark:bg-ink-dark dark:text-ground-dark; }
+.btn-secondary { @apply border border-line hover:bg-panel dark:border-line-dark dark:hover:bg-panel-dark; }

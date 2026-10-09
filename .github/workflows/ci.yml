@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, web]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: Build app
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: xcodebuild -version && swift --version
+      - name: Build
+        run: scripts/build.sh
+      - name: Self-test
+        run: |
+          PAINT_SELFTEST=1 PAINT_SNAPSHOT="$RUNNER_TEMP/paint.png" PAINT_QUIT=1 PAINT_SNAPSHOT_DELAY=6 \
+            "build/Paint Again.app/Contents/MacOS/Paint" 2>&1 | tee "$RUNNER_TEMP/selftest.log"
+          log="$RUNNER_TEMP/selftest.log"
+          grep -q '^SELFTEST' "$log" || { echo "::error::The self-test printed nothing"; exit 1; }
+          if grep '^SELFTEST' "$log" | grep -qw false; then
+            echo "::error::A SELFTEST check failed"; exit 1
+          fi
+          # "… #RRGGBB (expected #RRGGBB)" lines must match their expectation.
+          if grep -E '^SELFTEST.*\(expected ' "$log" | sed -E 's/.*(#[0-9A-Fa-f]{6}) \(expected (#[0-9A-Fa-f]{6})\).*/\1 \2/' | awk '$1 != $2 { bad=1 } END { exit !bad }'; then
+            echo "::error::A SELFTEST value differs from its expectation"; exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selftest-snapshot
+          path: ${{ runner.temp }}/paint.png
+          if-no-files-found: ignore
+
+  web:
+    name: Build website
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
