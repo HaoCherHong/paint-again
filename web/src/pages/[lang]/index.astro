@@ -5,7 +5,7 @@ import FeatureRow from '../../components/FeatureRow.astro';
 import Placeholder from '../../components/Placeholder.astro';
 import Shot from '../../components/Shot.astro';
 import { LANGS, type Lang, t } from '../../i18n/ui';
-import { APP_NAME, APP_STORE_URL, SITE_URL } from '../../site';
+import { APP_NAME, APP_STORE_URL, GITHUB_BUILD_URL, GITHUB_RELEASES_URL, GITHUB_URL, SITE_URL } from '../../site';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -42,7 +42,8 @@ const jsonLd = {
   offers: { '@type': 'Offer', price: '2.99', priceCurrency: 'USD' },
   description: tr('meta.description'),
   url: new URL(`/${lang}/`, SITE_URL).href,
-  screenshot: new URL('/screenshots/hero-light.jpg', SITE_URL).href,
+  // schema.org wants an actual picture of the app here, not the social card.
+  screenshot: new URL('/screenshots/ribbon-light.webp', SITE_URL).href,
 };
 ---
 <Base lang={lang} title={`${APP_NAME} - ${tr('meta.title')}`} description={tr('meta.description')} path="" jsonLd={jsonLd} verbatimTitle>
@@ -57,9 +58,16 @@ const jsonLd = {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.9-1.7 0-3.2 1-4.1 2.5-1.8 3-.5 7.6 1.3 10.1.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.3.8c1.4 0 2.2-1.3 3-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4zM14 5.2c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.5 2.9-1.3z"/></svg>
         {tr('hero.cta')}
       </a>
-      <a href="#features" class="btn-secondary">{tr('hero.secondary')}</a>
+      <a href={GITHUB_RELEASES_URL} class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+        {tr('hero.secondary')}
+      </a>
+      <a href={GITHUB_URL} class="btn-secondary" style="padding: 0.75rem" aria-label="GitHub" title="GitHub">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.06-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
     </div>
     <p class="mt-5 text-xs muted">{tr('hero.note')}</p>
+    <p class="mt-2 text-xs muted">{tr('hero.or')}{lang === 'en' ? ' ' : ''}<a href={GITHUB_BUILD_URL} class="link">{tr('hero.build')}</a>{lang === 'en' ? '.' : '。'}</p>
   </section>
 
   {SHOW_TIMELAPSE && (
@@ -161,7 +169,7 @@ const jsonLd = {
     <div class="grid gap-8 md:grid-cols-12">
       <h2 class="display text-3xl md:col-span-4">{tr('faq.title')}</h2>
       <dl class="divide-y divide-line dark:divide-line-dark md:col-span-7 md:col-start-6">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div class="py-5">
             <dt class="display text-lg">{tr(`faq.q${i}` as any)}</dt>
             <dd class="mt-1.5 leading-relaxed muted">{tr(`faq.a${i}` as any)}</dd>

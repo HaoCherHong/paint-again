@@ -1,12 +1,16 @@
 ---
 // Language-less root: send visitors to the default locale (Cloudflare also 302s via public/_redirects).
+// Kept out of the sitemap, so this canonical is the only thing telling crawlers where `/` belongs;
+// it has to be absolute for that.
+import { SITE_URL } from '../site';
+const canonical = new URL('/zh-Hant/', SITE_URL).href;
 ---
 <!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="refresh" content="0; url=/zh-Hant/" />
-    <link rel="canonical" href="/zh-Hant/" />
+    <link rel="canonical" href={canonical} />
     <title>Paint Again</title>
   </head>
   <body><a href="/zh-Hant/">繁體中文</a> · <a href="/en/">English</a></body>
