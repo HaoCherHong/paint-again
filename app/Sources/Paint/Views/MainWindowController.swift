@@ -112,8 +112,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         statusBar.setZoom(1)
         refreshUndo()
         syncSliders()
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { [weak self] event in
             guard let self, let window = self.window, window.isKeyWindow, event.window === window else { return event }
+            if event.type == .flagsChanged { // modifier cursors (Cmd on a guide, Option eyedropper), whoever is first responder
+                self.canvas.refreshCursor()
+                return event
+            }
             if self.window?.firstResponder is NSTextView { return event }
             if event.keyCode == 49 { // space: temporary hand tool while held
                 self.canvas.isSpaceDown = event.type == .keyDown

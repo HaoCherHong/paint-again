@@ -134,7 +134,7 @@ final class RibbonView: NSView {
         let tools = RibbonGroup(title: L("Tools"))
         let toolDefs: [(ToolKind, String, String)] = [
             (.pencil, "pencil", Theme.tip(L("Pencil"), "N")), (.fill, "", Theme.tip(L("Fill"), "G")), (.text, "", Theme.tip(L("Text"), "T")),
-            (.eraser, "eraser", Theme.tip(L("Eraser"), "E")), (.colorPicker, "eyedropper", Theme.tip(L("Color picker"), "I")),
+            (.eraser, "eraser", Theme.tip(L("Eraser"), "E")), (.colorPicker, "eyedropper", Theme.tip(L("Color picker"), "I") + "\n" + L("Hold ⌥ while painting to pick a color")),
             (.magnifier, "magnifyingglass", Theme.tip(L("Magnifier"), "Z")),
         ]
         var buttons: [RibbonButton] = []

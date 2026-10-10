@@ -87,10 +87,131 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     /// Samples the flattened image and assigns the colour to Color 1 (primary) or Color 2 (secondary).
     func sampleColor(at p: CGPoint, button: MouseButton) {
-        guard document.canvasRect.contains(p), let img = document.flattenedImage() else { return }
-        guard let c = Bitmap(image: img).color(at: p) else { return }
-        let picked = c.alphaComponent == 0 ? (document.backgroundVisible ? document.backgroundColor : NSColor.white) : c.withAlphaComponent(1)
+        guard document.canvasRect.contains(p), let source = pickSource ?? makePickSource(),
+              let picked = pickedColor(in: source, at: p) else { return }
         if button == .primary { state.color1 = picked } else { state.color2 = picked }
+    }
+
+    private func makePickSource() -> Bitmap? {
+        document.flattenedImage().map { Bitmap(image: $0) }
+    }
+
+    /// The colour the eyedropper reads from a flattened-image pixel: transparent pixels read as the
+    /// Background (white when it is hidden), everything else as opaque.
+    private func pickedColor(in source: Bitmap, at p: CGPoint) -> NSColor? {
+        guard let c = source.color(at: p) else { return nil }
+        return c.alphaComponent == 0 ? (document.backgroundVisible ? document.backgroundColor : NSColor.white) : c.withAlphaComponent(1)
+    }
+
+    // MARK: - Option eyedropper
+
+    /// Flattened image read by the loupe and by Option-click while Option is held; dropped when the
+    /// document changes or the eyedropper ends.
+    private var pickSource: Bitmap?
+    /// Whether the Option eyedropper currently owns the pointer (cursor, loupe, clicks).
+    private var optionPickActive = false
+    /// Button of an Option-click drag that keeps sampling until the button is released.
+    private var optionPickButton: MouseButton?
+    /// Pointer position (view coordinates) the loupe is drawn for; nil when the pointer is off the image.
+    private var loupePoint: CGPoint?
+    /// A tool received a mouse-down and has not seen the matching mouse-up yet.
+    private var isToolTracking = false
+
+    /// Painting tools sample on Option-click; tools that use the click for something else keep it.
+    private var toolAllowsOptionPick: Bool {
+        !tool.kind.isSelection && tool.kind != .magnifier && tool.kind != .text && !tool.hasPendingObject
+    }
+
+    private var wantsOptionPick: Bool {
+        if optionPickButton != nil { return true }
+        return mouseInside && !isSpaceDown && !isToolTracking && !isDraggingCanvasHandle && !isMovingGuide
+            && panStart == nil && NSEvent.modifierFlags.contains(.option) && toolAllowsOptionPick
+    }
+
+    /// Re-evaluates the Option eyedropper for a pointer at `viewPoint` (nil when the pointer left the canvas).
+    private func updateOptionPick(at viewPoint: CGPoint?) {
+        let active = viewPoint != nil && wantsOptionPick
+        var point = active ? viewPoint : nil
+        if let q = point, !document.canvasRect.contains(imagePoint(fromView: q)) { point = nil }
+        if active != optionPickActive {
+            optionPickActive = active
+            if active { pickSource = makePickSource() } else { pickSource = nil }
+            needsDisplay = true
+        } else if point != loupePoint {
+            if let r = loupeFrame(at: loupePoint) { setNeedsDisplay(r) }
+            if let r = loupeFrame(at: point) { setNeedsDisplay(r) }
+        }
+        loupePoint = point
+    }
+
+    private static let loupeCells = 11
+    private static let loupeCell: CGFloat = 9
+    private static let loupeInset: CGFloat = 6
+    private static let loupeInfoHeight: CGFloat = 22
+    private static let loupeOffset: CGFloat = 18
+
+    /// Loupe panel for a pointer at `p`: below-right of the pointer, flipped to the other side when it
+    /// would leave the visible area. Includes room for the drop shadow.
+    private func loupeFrame(at p: CGPoint?) -> CGRect? {
+        guard let p else { return nil }
+        let grid = CGFloat(Self.loupeCells) * Self.loupeCell
+        let size = CGSize(width: grid + Self.loupeInset * 2, height: grid + Self.loupeInset * 2 + Self.loupeInfoHeight)
+        let visible = visibleRect
+        var x = p.x + Self.loupeOffset, y = p.y + Self.loupeOffset
+        if x + size.width > visible.maxX { x = p.x - Self.loupeOffset - size.width }
+        if y + size.height > visible.maxY { y = p.y - Self.loupeOffset - size.height }
+        return CGRect(origin: CGPoint(x: x, y: y), size: size).insetBy(dx: -8, dy: -8)
+    }
+
+    /// Magnified pixels around the pointer with the sampled centre pixel outlined, plus its colour and hex value.
+    private func drawLoupe(_ ctx: CGContext) {
+        guard let p = loupePoint, let source = pickSource, let outer = loupeFrame(at: p) else { return }
+        let panel = outer.insetBy(dx: 8, dy: 8)
+        let center = imagePoint(fromView: p).floored
+        let half = Self.loupeCells / 2
+        let cell = Self.loupeCell
+        let grid = CGRect(x: panel.minX + Self.loupeInset, y: panel.minY + Self.loupeInset,
+                          width: CGFloat(Self.loupeCells) * cell, height: CGFloat(Self.loupeCells) * cell)
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            ctx.saveGState()
+            let shape = CGPath(roundedRect: panel, cornerWidth: 8, cornerHeight: 8, transform: nil)
+            ctx.setShadow(offset: CGSize(width: 0, height: -2), blur: 8, color: NSColor.black.withAlphaComponent(0.3).cgColor)
+            ctx.setFillColor(NSColor.controlBackgroundColor.cgColor)
+            ctx.addPath(shape)
+            ctx.fillPath()
+            ctx.restoreGState()
+
+            ctx.saveGState()
+            ctx.clip(to: grid)
+            ctx.setFillColor(NSColor.gray.withAlphaComponent(0.35).cgColor)
+            ctx.fill(grid)
+            for row in 0..<Self.loupeCells {
+                for col in 0..<Self.loupeCells {
+                    let ip = CGPoint(x: center.x + CGFloat(col - half), y: center.y + CGFloat(row - half))
+                    guard let c = pickedColor(in: source, at: ip) else { continue }
+                    ctx.setFillColor(c.cgColor)
+                    ctx.fill(CGRect(x: grid.minX + CGFloat(col) * cell, y: grid.minY + CGFloat(row) * cell, width: cell, height: cell))
+                }
+            }
+            ctx.restoreGState()
+
+            let mark = CGRect(x: grid.minX + CGFloat(half) * cell, y: grid.minY + CGFloat(half) * cell, width: cell, height: cell)
+            ctx.setLineWidth(1)
+            ctx.setStrokeColor(NSColor.white.cgColor); ctx.stroke(mark.insetBy(dx: -0.5, dy: -0.5))
+            ctx.setStrokeColor(NSColor.black.cgColor); ctx.stroke(mark.insetBy(dx: 0.5, dy: 0.5))
+            ctx.setStrokeColor(NSColor.separatorColor.cgColor); ctx.stroke(grid.insetBy(dx: -0.5, dy: -0.5))
+
+            guard let picked = pickedColor(in: source, at: center) else { return }
+            let info = CGRect(x: grid.minX, y: grid.maxY + 4, width: grid.width, height: Self.loupeInfoHeight - 4)
+            let swatch = CGRect(x: info.minX, y: info.midY - 7, width: 14, height: 14)
+            ctx.setFillColor(picked.cgColor)
+            ctx.fill(swatch)
+            ctx.setStrokeColor(NSColor.separatorColor.cgColor); ctx.stroke(swatch.insetBy(dx: 0.5, dy: 0.5))
+            let font = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+            let text = NSAttributedString(string: picked.hexString, attributes: [.font: font, .foregroundColor: NSColor.labelColor])
+            let ts = text.size()
+            text.draw(at: CGPoint(x: swatch.maxX + 6, y: info.midY - ts.height / 2))
+        }
     }
 
     /// Moves the selection (lifting it first) by a pixel offset; used by the arrow keys.
@@ -169,11 +290,6 @@ final class CanvasView: NSView, NSMenuItemValidation {
             ctx.strokePath()
         }
         ctx.restoreGState()
-    }
-
-    override func flagsChanged(with event: NSEvent) {
-        super.flagsChanged(with: event)
-        refreshCursor()
     }
 
     private var canvasResizeHandle: Handle?
@@ -319,6 +435,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     private func documentChanged() {
         updateFrameSize()
+        if optionPickActive { pickSource = makePickSource() }
         if let sel = selection, !document.canvasRect.contains(sel.rect), floating == nil {
             let clipped = sel.rect.intersection(document.canvasRect)
             selection = clipped.isEmpty ? nil : (sel.isRectangular ? Selection.rectangle(clipped) : sel)
@@ -338,6 +455,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
     private func switchTool(to kind: ToolKind) {
         tool.deactivate()
         if !kind.isSelection { commitFloating() }
+        isToolTracking = false
         if tool.kind != .colorPicker && tool.kind != .magnifier { previousToolKind = tool.kind }
         tool = Tool.make(kind, canvas: self)
         refreshCursor()
@@ -386,7 +504,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
         if showGrid { drawGrid(in: cr, ctx) }
         ctx.restoreGState()
 
-        tool.drawOverlay(in: ctx)
+        if !optionPickActive { tool.drawOverlay(in: ctx) }
 
         if let sel = selection {
             var t = viewTransform
@@ -399,6 +517,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
         drawCanvasHandles(cr, ctx)
         drawGuides(ctx)
         drawSizePreview(ctx)
+        drawLoupe(ctx)
         if let preview = canvasResizePreview {
             let r = viewRect(fromImage: preview)
             ctx.saveGState()
@@ -519,10 +638,13 @@ final class CanvasView: NSView, NSMenuItemValidation {
             if !over { pointerLeft() }
         }
         guard over else { return }
-        updateCursor(at: convert(wp, from: nil))
+        let p = convert(wp, from: nil)
+        updateOptionPick(at: p)
+        updateCursor(at: p)
     }
 
     private func pointerLeft() {
+        updateOptionPick(at: nil)
         delegate?.canvasCursorMoved(nil)
         tool.mouseExited()
         NSCursor.arrow.set()
@@ -537,6 +659,10 @@ final class CanvasView: NSView, NSMenuItemValidation {
         }
         if NSEvent.modifierFlags.contains(.command), let i = guideIndex(near: viewPoint) {
             (guides[i].axis == .horizontal ? NSCursor.resizeUpDown : NSCursor.resizeLeftRight).set()
+            return
+        }
+        if optionPickActive {
+            Theme.cursor(symbol: "eyedropper", anchor: .bottomLeft).set()
             return
         }
         if let h = canvasHandle(at: viewPoint) {
@@ -606,8 +732,10 @@ final class CanvasView: NSView, NSMenuItemValidation {
             }
             return
         }
-        if event.modifierFlags.contains(.option), !tool.kind.isSelection, tool.kind != .magnifier, tool.kind != .text, !tool.hasPendingObject {
+        if event.modifierFlags.contains(.option), toolAllowsOptionPick {
+            optionPickButton = .primary
             sampleColor(at: imagePoint(fromView: p), button: .primary)
+            updateOptionPick(at: p)
             return
         }
         if let h = canvasHandle(at: p) {
@@ -615,6 +743,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
             canvasResizePreview = document.canvasRect
             return
         }
+        isToolTracking = true
         tool.mouseDown(at: imagePoint(fromView: p), button: .primary, event: event)
     }
 
@@ -622,6 +751,11 @@ final class CanvasView: NSView, NSMenuItemValidation {
         let p = convert(event.locationInWindow, from: nil)
         let ip = imagePoint(fromView: p)
         delegate?.canvasCursorMoved(document.canvasRect.contains(ip) ? ip.floored : nil)
+        if optionPickButton == .primary {
+            sampleColor(at: ip, button: .primary)
+            updateOptionPick(at: p)
+            return
+        }
         if isMovingGuide, let g = draggingGuide {
             updateGuideDrag(axis: g.axis, windowPoint: event.locationInWindow)
             return
@@ -644,6 +778,11 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     override func mouseUp(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
+        if optionPickButton == .primary {
+            optionPickButton = nil
+            pointerMoved(toWindowPoint: event.locationInWindow)
+            return
+        }
         if isMovingGuide {
             finishGuideDrag(windowPoint: event.locationInWindow)
             refreshCursor()
@@ -665,6 +804,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
             needsDisplay = true
             return
         }
+        isToolTracking = false
         tool.mouseUp(at: imagePoint(fromView: p), button: .primary, event: event)
         pointerMoved(toWindowPoint: event.locationInWindow)
     }
@@ -672,17 +812,35 @@ final class CanvasView: NSView, NSMenuItemValidation {
     override func rightMouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
         let p = convert(event.locationInWindow, from: nil)
+        if event.modifierFlags.contains(.option), !isSpaceDown, toolAllowsOptionPick {
+            optionPickButton = .secondary
+            sampleColor(at: imagePoint(fromView: p), button: .secondary)
+            updateOptionPick(at: p)
+            return
+        }
+        isToolTracking = true
         tool.mouseDown(at: imagePoint(fromView: p), button: .secondary, event: event)
     }
 
     override func rightMouseDragged(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
+        if optionPickButton == .secondary {
+            sampleColor(at: imagePoint(fromView: p), button: .secondary)
+            updateOptionPick(at: p)
+            return
+        }
         autoscroll(with: event)
         tool.mouseDragged(to: imagePoint(fromView: p), button: .secondary, event: event)
     }
 
     override func rightMouseUp(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
+        if optionPickButton == .secondary {
+            optionPickButton = nil
+            pointerMoved(toWindowPoint: event.locationInWindow)
+            return
+        }
+        isToolTracking = false
         tool.mouseUp(at: imagePoint(fromView: p), button: .secondary, event: event)
     }
 

@@ -175,6 +175,7 @@
 "Color 1" = "色彩 1";
 "Color 2" = "色彩 2";
 "Color picker" = "色彩選擇器";
+"Hold ⌥ while painting to pick a color" = "繪圖時按住 ⌥ 可直接取色";
 "Edit colors" = "編輯色彩";
 "Solid color" = "單色";
 "Watercolor" = "水彩";
