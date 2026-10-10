@@ -19,6 +19,7 @@ final class RibbonView: NSView {
     private var outlineButton: RibbonButton!
     private var fillButton: RibbonButton!
     private var layersButton: RibbonButton!
+    private var colorPanelButton: RibbonButton!
     private var palette: ColorPaletteView!
     private var observers: [Any] = []
     private var popover: NSPopover?
@@ -221,6 +222,14 @@ final class RibbonView: NSView {
         stack.addArrangedSubview(colors)
         stack.addArrangedSubview(RibbonSeparator())
 
+        // Color panel
+        let colorPanelGroup = RibbonGroup(title: L("Palette"))
+        colorPanelButton = RibbonButton(symbol: "paintpalette", style: .large, tooltip: L("Color Panel")) {
+            NSApp.sendAction(#selector(MainWindowController.toggleColorPanel(_:)), to: nil, from: nil)
+        }
+        colorPanelGroup.content.addArrangedSubview(colorPanelButton)
+        stack.addArrangedSubview(colorPanelGroup)
+
         // Layers
         let layers = RibbonGroup(title: L("Layers"))
         layersButton = RibbonButton(symbol: "square.3.layers.3d", style: .large, tooltip: Theme.tip(L("Layers"), "⌘L")) {
@@ -243,6 +252,10 @@ final class RibbonView: NSView {
 
     func setLayersPanelVisible(_ visible: Bool) {
         layersButton.isSelected = visible
+    }
+
+    func setColorPanelVisible(_ visible: Bool) {
+        colorPanelButton.isSelected = visible
     }
 
     // MARK: - Menus & popovers

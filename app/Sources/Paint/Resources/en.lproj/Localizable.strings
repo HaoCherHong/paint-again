@@ -218,3 +218,11 @@
 "Window:" = "Window:";
 "Relaunch Now" = "Relaunch Now";
 "The language changes after Paint Again is relaunched." = "The language changes after Paint Again is relaunched.";
+"Palette" = "Palette";
+"Color Panel" = "Color Panel";
+"Hex" = "Hex";
+"Hue × saturation spectrum, value on a slider" = "Hue × saturation spectrum, value on a slider";
+"Saturation × value square, hue on a slider" = "Saturation × value square, hue on a slider";
+"Spectrum" = "Spectrum";
+"Shades" = "Shades";
+"Color picker style" = "Color picker style";

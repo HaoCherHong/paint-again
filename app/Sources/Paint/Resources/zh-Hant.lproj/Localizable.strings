@@ -218,3 +218,11 @@
 "Window:" = "視窗：";
 "Relaunch Now" = "立即重新啟動";
 "The language changes after Paint Again is relaunched." = "語言會在重新啟動 Paint Again 後變更。";
+"Palette" = "調色盤";
+"Color Panel" = "調色盤面板";
+"Hex" = "十六進位";
+"Hue × saturation spectrum, value on a slider" = "色相 × 飽和度色盤，明度用拉桿調整";
+"Saturation × value square, hue on a slider" = "飽和度 × 明度色盤，色相用拉桿調整";
+"Spectrum" = "色譜";
+"Shades" = "深淺";
+"Color picker style" = "取色器樣式";

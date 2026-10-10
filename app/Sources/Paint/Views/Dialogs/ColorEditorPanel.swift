@@ -1,12 +1,15 @@
 import AppKit
 
-/// "Edit colors" sheet: hue × saturation spectrum, a vertical preview bar,
-/// a vertical value slider, hex / RGB / HSV fields, a Basic colors grid and user-managed Custom colors.
+/// "Edit colors" sheet: the spectrum (hue × saturation, or saturation × value per `AppSettings.spectrumMode`),
+/// a vertical preview bar, vertical HSV sliders, hex / RGB / HSV fields with the spectrum mode switch, a Basic
+/// colors grid and user-managed Custom colors.
 final class ColorEditorPanel: NSObject {
     private let window: NSWindow
     private let state: ToolState
     private let spectrum = SpectrumView()
-    private let valueSlider = ValueSliderView()
+    private let sliders = HSVSlidersView(vertical: true)
+    private let modeControl = SpectrumModeControl()
+    private var settingsObserver: Any?
     private let preview = NSView()
     private let hexField = NSTextField(string: "")
     private let modelPopup = NSPopUpButton()
@@ -38,10 +41,12 @@ final class ColorEditorPanel: NSObject {
 
     private static var activePanels: [ColorEditorPanel] = []
 
+    deinit { if let o = settingsObserver { NotificationCenter.default.removeObserver(o) } }
+
     private init(initial: NSColor, state: ToolState, completion: @escaping (NSColor?) -> Void) {
         self.completion = completion
         self.state = state
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: 620), styleMask: [.titled], backing: .buffered, defer: false)
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 620), styleMask: [.titled], backing: .buffered, defer: false)
         super.init()
         setColor(initial)
         build()
@@ -63,9 +68,9 @@ final class ColorEditorPanel: NSObject {
         root.addSubview(title)
 
         spectrum.frame = NSRect(x: 24, y: 300, width: 256, height: 256)
-        spectrum.onChange = { [weak self] h, s in
+        spectrum.onChange = { [weak self] h, s, v in
             guard let self else { return }
-            self.hue = h; self.saturation = s
+            self.hue = h; self.saturation = s; self.value = v
             self.syncFromHSV()
         }
         root.addSubview(spectrum)
@@ -75,33 +80,39 @@ final class ColorEditorPanel: NSObject {
         preview.frame = NSRect(x: 296, y: 300, width: 40, height: 256)
         root.addSubview(preview)
 
-        valueSlider.frame = NSRect(x: 348, y: 300, width: 24, height: 256)
-        valueSlider.onChange = { [weak self] v in
+        sliders.onChange = { [weak self] h, s, v in
             guard let self else { return }
-            self.value = v
+            self.hue = h; self.saturation = s; self.value = v
             self.syncFromHSV()
         }
-        root.addSubview(valueSlider)
+        root.addSubview(sliders)
 
-        hexField.frame = NSRect(x: 396, y: 526, width: 130, height: 26)
+        modeControl.frame = NSRect(x: 452, y: 304, width: 130, height: 24)
+        root.addSubview(modeControl)
+        applyMode()
+        settingsObserver = NotificationCenter.default.addObserver(forName: .settingsChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.applyMode()
+        }
+
+        hexField.frame = NSRect(x: 452, y: 526, width: 130, height: 26)
         hexField.delegate = self
         hexField.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
         root.addSubview(hexField)
 
         modelPopup.addItems(withTitles: ["RGB", "HSV"])
-        modelPopup.frame = NSRect(x: 396, y: 484, width: 130, height: 26)
+        modelPopup.frame = NSRect(x: 452, y: 484, width: 130, height: 26)
         modelPopup.target = self
         modelPopup.action = #selector(modelChanged)
         root.addSubview(modelPopup)
 
         for i in 0..<3 {
             let y = 438 - CGFloat(i) * 44
-            fields[i].frame = NSRect(x: 396, y: y, width: 130, height: 26)
+            fields[i].frame = NSRect(x: 452, y: y, width: 130, height: 26)
             fields[i].alignment = .left
             fields[i].delegate = self
             fields[i].font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
             root.addSubview(fields[i])
-            fieldLabels[i].frame = NSRect(x: 536, y: y + 3, width: 90, height: 20)
+            fieldLabels[i].frame = NSRect(x: 592, y: y + 3, width: 90, height: 20)
             fieldLabels[i].textColor = Theme.text
             root.addSubview(fieldLabels[i])
         }
@@ -120,13 +131,13 @@ final class ColorEditorPanel: NSObject {
 
         let customTitle = NSTextField(labelWithString: L("Custom colors"))
         customTitle.textColor = Theme.text
-        customTitle.frame = NSRect(x: 410, y: 258, width: 160, height: 20)
+        customTitle.frame = NSRect(x: 450, y: 258, width: 160, height: 20)
         root.addSubview(customTitle)
         let add = NSButton(image: Theme.symbol("plus", size: 12)?.tinted(Theme.text) ?? NSImage(), target: self, action: #selector(addCustom))
         add.bezelStyle = .smallSquare
         add.isBordered = true
         add.toolTip = L("Add current color to custom colors")
-        add.frame = NSRect(x: 596, y: 254, width: 26, height: 26)
+        add.frame = NSRect(x: 636, y: 254, width: 26, height: 26)
         root.addSubview(add)
         customGrid = SwatchGridView(columns: 6, rows: 4) { [weak self] index, color in
             guard let self else { return }
@@ -137,7 +148,7 @@ final class ColorEditorPanel: NSObject {
         customGrid.colors = state.customColors
         selectedSlot = state.firstEmptyCustomSlot
         customGrid.selectedIndex = selectedSlot
-        customGrid.frame = NSRect(x: 410, y: 130, width: 6 * 30, height: 4 * 30)
+        customGrid.frame = NSRect(x: 450, y: 130, width: 6 * 30, height: 4 * 30)
         root.addSubview(customGrid)
 
         let ok = NSButton(title: L("OK"), target: self, action: #selector(okPressed))
@@ -145,17 +156,25 @@ final class ColorEditorPanel: NSObject {
         ok.bezelStyle = .rounded
         ok.controlSize = .large
         ok.bezelColor = Theme.accent
-        ok.frame = NSRect(x: 24, y: 28, width: 300, height: 34)
+        ok.frame = NSRect(x: 24, y: 28, width: 320, height: 34)
         root.addSubview(ok)
         let cancel = NSButton(title: L("Cancel"), target: self, action: #selector(cancelPressed))
         cancel.keyEquivalent = "\u{1b}"
         cancel.bezelStyle = .rounded
         cancel.controlSize = .large
-        cancel.frame = NSRect(x: 336, y: 28, width: 300, height: 34)
+        cancel.frame = NSRect(x: 356, y: 28, width: 320, height: 34)
         root.addSubview(cancel)
     }
 
     // MARK: - State
+
+    /// Follows the shared spectrum mode; the slider column is as wide as its sliders (a hue slider joins in the
+    /// saturation × value mode).
+    private func applyMode() {
+        spectrum.mode = AppSettings.spectrumMode
+        sliders.mode = AppSettings.spectrumMode
+        sliders.frame = NSRect(x: 348, y: 300, width: HSVSlidersView.width(for: AppSettings.spectrumMode), height: 256)
+    }
 
     private func setColor(_ c: NSColor) {
         let d = c.usingColorSpace(.sRGB) ?? c
@@ -168,8 +187,8 @@ final class ColorEditorPanel: NSObject {
     }
 
     private func syncFromHSV() {
-        spectrum.hue = hue; spectrum.saturation = saturation
-        valueSlider.hue = hue; valueSlider.saturation = saturation; valueSlider.value = value
+        spectrum.hue = hue; spectrum.saturation = saturation; spectrum.value = value
+        sliders.set(hue: hue, saturation: saturation, value: value)
         preview.layer?.backgroundColor = color.cgColor
         basicGrid?.selected = color
         updateFields()
@@ -226,8 +245,8 @@ extension ColorEditorPanel: NSTextFieldDelegate {
             guard s.count == 6, UInt32(s, radix: 16) != nil else { return }
             setColor(NSColor(hex: s))
             updatingFields = true
-            spectrum.hue = hue; spectrum.saturation = saturation
-            valueSlider.hue = hue; valueSlider.saturation = saturation; valueSlider.value = value
+            spectrum.hue = hue; spectrum.saturation = saturation; spectrum.value = value
+            sliders.set(hue: hue, saturation: saturation, value: value)
             preview.layer?.backgroundColor = color.cgColor
             let c = color
             if isHSV {
@@ -247,91 +266,13 @@ extension ColorEditorPanel: NSTextFieldDelegate {
             setColor(NSColor(srgbRed: CGFloat(max(0, min(255, values[0]))) / 255, green: CGFloat(max(0, min(255, values[1]))) / 255,
                              blue: CGFloat(max(0, min(255, values[2]))) / 255, alpha: 1))
         }
-        spectrum.hue = hue; spectrum.saturation = saturation
-        valueSlider.hue = hue; valueSlider.saturation = saturation; valueSlider.value = value
+        spectrum.hue = hue; spectrum.saturation = saturation; spectrum.value = value
+        sliders.set(hue: hue, saturation: saturation, value: value)
         preview.layer?.backgroundColor = color.cgColor
         updatingFields = true
         hexField.stringValue = color.hexString
         updatingFields = false
     }
-}
-
-/// Hue (horizontal) × saturation (vertical) spectrum rendered at full brightness.
-final class SpectrumView: NSView {
-    var hue: CGFloat = 0 { didSet { needsDisplay = true } }
-    var saturation: CGFloat = 1 { didSet { needsDisplay = true } }
-    var onChange: ((CGFloat, CGFloat) -> Void)?
-
-    override var isFlipped: Bool { true }
-
-    override func draw(_ dirtyRect: NSRect) {
-        guard let ctx = NSGraphicsContext.current?.cgContext else { return }
-        let r = bounds
-        let path = CGPath(roundedRect: r, cornerWidth: 6, cornerHeight: 6, transform: nil)
-        ctx.saveGState()
-        ctx.addPath(path); ctx.clip()
-        let hues = stride(from: 0, through: 6, by: 1).map { NSColor(colorSpace: .sRGB, hue: CGFloat($0) / 6, saturation: 1, brightness: 1, alpha: 1).cgColor }
-        if let rainbow = CGGradient(colorsSpace: Bitmap.colorSpace, colors: hues as CFArray, locations: nil) {
-            ctx.drawLinearGradient(rainbow, start: CGPoint(x: r.minX, y: 0), end: CGPoint(x: r.maxX, y: 0), options: [])
-        }
-        if let fade = CGGradient(colorsSpace: Bitmap.colorSpace,
-                                 colors: [NSColor.white.withAlphaComponent(0).cgColor, NSColor.white.cgColor] as CFArray, locations: [0, 1]) {
-            ctx.drawLinearGradient(fade, start: CGPoint(x: 0, y: r.minY), end: CGPoint(x: 0, y: r.maxY), options: [])
-        }
-        ctx.restoreGState()
-        let p = CGPoint(x: r.minX + hue * r.width, y: r.minY + (1 - saturation) * r.height)
-        let ring = CGRect(x: p.x - 7, y: p.y - 7, width: 14, height: 14)
-        ctx.setLineWidth(2.5)
-        ctx.setStrokeColor(NSColor.white.cgColor); ctx.strokeEllipse(in: ring)
-        ctx.setLineWidth(1)
-        ctx.setStrokeColor(NSColor.black.withAlphaComponent(0.5).cgColor); ctx.strokeEllipse(in: ring.insetBy(dx: -1.5, dy: -1.5))
-    }
-
-    private func update(with event: NSEvent) {
-        let p = convert(event.locationInWindow, from: nil)
-        onChange?(max(0, min(1, p.x / bounds.width)), max(0, min(1, 1 - p.y / bounds.height)))
-    }
-
-    override func mouseDown(with event: NSEvent) { update(with: event) }
-    override func mouseDragged(with event: NSEvent) { update(with: event) }
-}
-
-/// Vertical brightness slider: the current hue / saturation at full brightness on top, black at the bottom.
-final class ValueSliderView: NSView {
-    var hue: CGFloat = 0 { didSet { needsDisplay = true } }
-    var saturation: CGFloat = 1 { didSet { needsDisplay = true } }
-    var value: CGFloat = 1 { didSet { needsDisplay = true } }
-    var onChange: ((CGFloat) -> Void)?
-
-    override func draw(_ dirtyRect: NSRect) {
-        guard let ctx = NSGraphicsContext.current?.cgContext else { return }
-        let track = CGRect(x: bounds.midX - 5, y: bounds.minY + 8, width: 10, height: bounds.height - 16)
-        let path = CGPath(roundedRect: track, cornerWidth: 5, cornerHeight: 5, transform: nil)
-        ctx.saveGState()
-        ctx.addPath(path); ctx.clip()
-        let bright = NSColor(colorSpace: .sRGB, hue: hue, saturation: saturation, brightness: 1, alpha: 1).cgColor
-        if let g = CGGradient(colorsSpace: Bitmap.colorSpace, colors: [NSColor.black.cgColor, bright] as CFArray, locations: [0, 1]) {
-            ctx.drawLinearGradient(g, start: CGPoint(x: 0, y: track.minY), end: CGPoint(x: 0, y: track.maxY), options: [])
-        }
-        ctx.restoreGState()
-        let y = track.minY + value * track.height
-        let knob = CGRect(x: bounds.midX - 8, y: y - 8, width: 16, height: 16)
-        ctx.setFillColor(NSColor(colorSpace: .sRGB, hue: hue, saturation: saturation, brightness: value, alpha: 1).cgColor)
-        ctx.fillEllipse(in: knob)
-        ctx.setLineWidth(2.5)
-        ctx.setStrokeColor(NSColor.white.cgColor); ctx.strokeEllipse(in: knob)
-        ctx.setLineWidth(1)
-        ctx.setStrokeColor(NSColor.black.withAlphaComponent(0.4).cgColor); ctx.strokeEllipse(in: knob.insetBy(dx: -1.5, dy: -1.5))
-    }
-
-    private func update(with event: NSEvent) {
-        let p = convert(event.locationInWindow, from: nil)
-        let track = CGRect(x: 0, y: bounds.minY + 8, width: bounds.width, height: bounds.height - 16)
-        onChange?(max(0, min(1, (p.y - track.minY) / track.height)))
-    }
-
-    override func mouseDown(with event: NSEvent) { update(with: event) }
-    override func mouseDragged(with event: NSEvent) { update(with: event) }
 }
 
 /// Grid of round swatches; empty slots are drawn as dashed circles. Reports the tapped slot and its colour.

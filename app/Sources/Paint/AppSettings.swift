@@ -39,6 +39,17 @@ enum AppSettings {
         set { set(newValue, forKey: "ShowLayersPanel") }
     }
 
+    /// Layout of the colour spectrum in Edit colors and the Color panel.
+    static var spectrumMode: SpectrumMode {
+        get { SpectrumMode(rawValue: defaults.integer(forKey: "SpectrumMode")) ?? .hueSaturation }
+        set { set(newValue.rawValue, forKey: "SpectrumMode") }
+    }
+
+    static var showColorPanel: Bool {
+        get { bool("ShowColorPanel", default: false) }
+        set { set(newValue, forKey: "ShowColorPanel") }
+    }
+
     static var showRulers: Bool {
         get { bool("ShowRulers", default: false) }
         set { set(newValue, forKey: "ShowRulers") }

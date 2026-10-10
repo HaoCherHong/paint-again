@@ -45,6 +45,7 @@ enum Theme {
     static let menuStripHeight: CGFloat = 38
     static let statusBarHeight: CGFloat = 30
     static let layersPanelWidth: CGFloat = 120
+    static let colorPanelWidth: CGFloat = 252
 
     static func symbol(_ name: String, size: CGFloat = 18, weight: NSFont.Weight = .regular) -> NSImage? {
         guard let img = NSImage(systemSymbolName: name, accessibilityDescription: nil) else { return nil }

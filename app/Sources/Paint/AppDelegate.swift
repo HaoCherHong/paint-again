@@ -184,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(item(L("Clear Guides"), #selector(MainWindowController.clearGuides(_:))))
         viewMenu.addItem(item(L("Status Bar"), #selector(MainWindowController.toggleStatusBar(_:))))
         viewMenu.addItem(item(L("Layers Panel"), #selector(MainWindowController.toggleLayersPanel(_:)), "l"))
+        viewMenu.addItem(item(L("Color Panel"), #selector(MainWindowController.toggleColorPanel(_:))))
         viewMenu.addItem(item(L("Show Toolbar"), #selector(MainWindowController.toggleTopToolbar(_:)), "t", [.command, .option]))
         viewMenu.addItem(.separator())
         themeMenu.removeAllItems()

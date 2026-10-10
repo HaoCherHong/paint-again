@@ -4,7 +4,10 @@ import AppKit
 final class ColorPaletteView: NSView {
     let state: ToolState
     /// Which well receives palette clicks.
-    var target: MouseButton = .primary { didSet { needsDisplay = true } }
+    var target: MouseButton {
+        get { state.colorTarget }
+        set { state.colorTarget = newValue }
+    }
     var onEditColors: (() -> Void)?
 
     private let swatch: CGFloat = 16

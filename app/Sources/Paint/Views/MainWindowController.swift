@@ -65,11 +65,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
     private let vRuler = RulerView(horizontal: false)
     private let rulerCorner = RulerCornerView()
     private var layersPanel: LayersPanelView!
+    private var colorPanel: ColorPanelView!
     private let statusBar = StatusBarView()
 
     private var showRulers: Bool { AppSettings.showRulers }
     private var showStatusBar: Bool { AppSettings.showStatusBar }
     private var showLayersPanel: Bool { AppSettings.showLayersPanel }
+    private var showColorPanel: Bool { AppSettings.showColorPanel }
     private var showTopToolbar: Bool { AppSettings.showTopToolbar }
     private let toast = ToastView()
     /// Liquid Glass slab behind the Toolbar, Ribbon and Text bar (plain container before macOS 26).
@@ -285,6 +287,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
 
         layersPanel = LayersPanelView(document: paintDocument)
         root.addSubview(layersPanel)
+        colorPanel = ColorPanelView(state: state)
+        root.addSubview(colorPanel)
 
         root.addSubview(toast)
 
@@ -334,9 +338,16 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
 
         let middleH = size.height - y - statusH
         let middleW = w
-        // The Layers card floats over the canvas (like the slider cards) instead of narrowing it.
+        // The Color and Layers cards float over the canvas (like the slider cards) instead of narrowing it,
+        // stacked against the right edge with the Color card on top.
+        var columnY = y
+        if showColorPanel {
+            colorPanel.frame = CGRect(x: w - Theme.colorPanelWidth, y: columnY, width: Theme.colorPanelWidth, height: ColorPanelView.height)
+            columnY += ColorPanelView.height
+        }
         if showLayersPanel {
-            layersPanel.frame = CGRect(x: w - Theme.layersPanelWidth, y: y, width: Theme.layersPanelWidth, height: middleH)
+            layersPanel.frame = CGRect(x: w - Theme.layersPanelWidth, y: columnY, width: Theme.layersPanelWidth,
+                                       height: max(0, middleH - (columnY - y)))
         }
         let rulerT: CGFloat = showRulers ? 20 : 0
         rulerCorner.frame = CGRect(x: 0, y: y, width: rulerT, height: rulerT)
@@ -455,6 +466,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         hRuler.isHidden = !showRulers; vRuler.isHidden = !showRulers; rulerCorner.isHidden = !showRulers
         layersPanel.isHidden = !showLayersPanel
         ribbon.setLayersPanelVisible(showLayersPanel)
+        colorPanel.isHidden = !showColorPanel
+        ribbon.setColorPanelVisible(showColorPanel)
         ribbon.setHistoryVisible(!showTopToolbar)
         canvas.showGrid = AppSettings.showGridlines
         canvas.showGuides = AppSettings.showGuides
@@ -479,6 +492,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
     @objc func toggleStatusBar(_ sender: Any?) { AppSettings.showStatusBar.toggle() }
 
     @objc func toggleLayersPanel(_ sender: Any?) { AppSettings.showLayersPanel.toggle() }
+
+    @objc func toggleColorPanel(_ sender: Any?) { AppSettings.showColorPanel.toggle() }
 
     // MARK: - Edit actions
 
@@ -628,6 +643,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         case #selector(toggleRulers(_:)): item.state = showRulers ? .on : .off
         case #selector(toggleStatusBar(_:)): item.state = showStatusBar ? .on : .off
         case #selector(toggleLayersPanel(_:)): item.state = showLayersPanel ? .on : .off
+        case #selector(toggleColorPanel(_:)): item.state = showColorPanel ? .on : .off
         case #selector(toggleTransparentSelection(_:)): item.state = state.transparentSelection ? .on : .off
         case #selector(cropToSelection(_:)), #selector(invertSelection(_:)): return canvas.selection != nil
         case #selector(deleteLayer(_:)): return doc.layers.count > 1

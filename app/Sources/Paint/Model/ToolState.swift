@@ -11,6 +11,8 @@ final class ToolState {
     var lastShape: ShapeKind = .rectangle
     var color1: NSColor = .black { didSet { changed() } }
     var color2: NSColor = .white { didSet { changed() } }
+    /// The well that palette clicks and the colour editors change.
+    var colorTarget: MouseButton = .primary { didSet { changed() } }
     var lineWidth: CGFloat = 3 { didSet { lineWidth = max(1, min(100, lineWidth.rounded())); changed() } }
     /// Paint opacity 0…1 applied to pencil, brushes, shapes, text, fill and eraser.
     var opacity: CGFloat = 1 { didSet { opacity = max(0, min(1, opacity)); changed() } }
