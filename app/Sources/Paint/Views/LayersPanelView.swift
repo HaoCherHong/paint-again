@@ -36,7 +36,7 @@ final class LayersPanelView: NSView {
         addSubview(card)
         let inner = card.content
 
-        let add = RibbonButton(tooltip: Theme.tip(L("Add layer"), "⇧⌘N")) { NSApp.sendAction(#selector(MainWindowController.addLayer(_:)), to: nil, from: nil) }
+        let add = RibbonButton(tooltip: Shortcuts.addLayer.tip(L("Add layer"))) { NSApp.sendAction(#selector(MainWindowController.addLayer(_:)), to: nil, from: nil) }
         add.preferredSize = NSSize(width: 28, height: 28)
         add.isCircular = true
         add.customIcon = { ctx, rect in

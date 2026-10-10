@@ -62,9 +62,9 @@ final class StatusBarView: NSView {
         zoomPopup.target = self
         zoomPopup.action = #selector(popupChanged)
         zoomPopup.widthAnchor.constraint(equalToConstant: 76).isActive = true
-        let minus = RibbonButton(symbol: "minus.magnifyingglass", tooltip: Theme.tip(L("Zoom out"), "⌘−")) { [weak self] in self?.onZoomOut?() }
+        let minus = RibbonButton(symbol: "minus.magnifyingglass", tooltip: Shortcuts.zoomOut.tip(L("Zoom out"))) { [weak self] in self?.onZoomOut?() }
         minus.preferredSize = NSSize(width: 24, height: 22)
-        let plus = RibbonButton(symbol: "plus.magnifyingglass", tooltip: Theme.tip(L("Zoom in"), "⌘+")) { [weak self] in self?.onZoomIn?() }
+        let plus = RibbonButton(symbol: "plus.magnifyingglass", tooltip: Shortcuts.zoomIn.tip(L("Zoom in"))) { [weak self] in self?.onZoomIn?() }
         plus.preferredSize = NSSize(width: 24, height: 22)
         slider.minValue = -3
         slider.maxValue = 3

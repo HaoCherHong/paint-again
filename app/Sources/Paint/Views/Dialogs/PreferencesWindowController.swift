@@ -65,13 +65,13 @@ final class PreferencesWindowController: NSWindowController {
         liquidGlass.action = #selector(liquidGlassChanged(_:))
 
         windowOptions = [
-            (NSButton(checkboxWithTitle: L("Show Toolbar"), target: nil, action: nil), "⌥ + ⌘ + T", { AppSettings.showTopToolbar }, { AppSettings.showTopToolbar = $0 }),
+            (NSButton(checkboxWithTitle: L("Show Toolbar"), target: nil, action: nil), Shortcuts.showToolbar.display, { AppSettings.showTopToolbar }, { AppSettings.showTopToolbar = $0 }),
             (NSButton(checkboxWithTitle: L("Status Bar"), target: nil, action: nil), nil, { AppSettings.showStatusBar }, { AppSettings.showStatusBar = $0 }),
-            (NSButton(checkboxWithTitle: L("Layers Panel"), target: nil, action: nil), "⌘ + L", { AppSettings.showLayersPanel }, { AppSettings.showLayersPanel = $0 }),
-            (NSButton(checkboxWithTitle: L("Color Panel"), target: nil, action: nil), nil, { AppSettings.showColorPanel }, { AppSettings.showColorPanel = $0 }),
-            (NSButton(checkboxWithTitle: L("Rulers"), target: nil, action: nil), "⌘ + R", { AppSettings.showRulers }, { AppSettings.showRulers = $0 }),
-            (NSButton(checkboxWithTitle: L("Gridlines"), target: nil, action: nil), "⌘ + G", { AppSettings.showGridlines }, { AppSettings.showGridlines = $0 }),
-            (NSButton(checkboxWithTitle: L("Guides"), target: nil, action: nil), "⌘ + ;", { AppSettings.showGuides }, { AppSettings.showGuides = $0 }),
+            (NSButton(checkboxWithTitle: L("Layers Panel"), target: nil, action: nil), Shortcuts.layersPanel.display, { AppSettings.showLayersPanel }, { AppSettings.showLayersPanel = $0 }),
+            (NSButton(checkboxWithTitle: L("Color Panel"), target: nil, action: nil), Shortcuts.colorPanel.display, { AppSettings.showColorPanel }, { AppSettings.showColorPanel = $0 }),
+            (NSButton(checkboxWithTitle: L("Rulers"), target: nil, action: nil), Shortcuts.rulers.display, { AppSettings.showRulers }, { AppSettings.showRulers = $0 }),
+            (NSButton(checkboxWithTitle: L("Gridlines"), target: nil, action: nil), Shortcuts.gridlines.display, { AppSettings.showGridlines }, { AppSettings.showGridlines = $0 }),
+            (NSButton(checkboxWithTitle: L("Guides"), target: nil, action: nil), Shortcuts.guides.display, { AppSettings.showGuides }, { AppSettings.showGuides = $0 }),
         ]
         for (i, option) in windowOptions.enumerated() {
             option.button.tag = i

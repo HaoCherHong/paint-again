@@ -74,6 +74,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
     private var showColorPanel: Bool { AppSettings.showColorPanel }
     private var showTopToolbar: Bool { AppSettings.showTopToolbar }
     private let toast = ToastView()
+    private let cheatSheet = ShortcutCheatSheetView()
+    /// Opened from the Ribbon button or View menu; stays until a click, Esc or the button.
+    private var showsCheatSheet = false {
+        didSet {
+            cheatSheet.isHidden = !showsCheatSheet
+            ribbon.setCheatSheetVisible(showsCheatSheet)
+            if showsCheatSheet { window?.invalidateCursorRects(for: cheatSheet) }
+        }
+    }
     /// Liquid Glass slab behind the Toolbar, Ribbon and Text bar (plain container before macOS 26).
     private let chromeHost = GlassHost(cornerRadius: 0, fallback: .none, veil: Theme.glassBand)
     private var observers: [Any] = []
@@ -109,6 +118,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         observers.append(NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak self] _ in self?.updateRulers() })
         observers.append(NotificationCenter.default.addObserver(forName: .NSUndoManagerCheckpoint, object: document.undoManager, queue: .main) { [weak self] _ in self?.refreshUndo() })
         observers.append(NotificationCenter.default.addObserver(forName: .settingsChanged, object: nil, queue: .main) { [weak self] _ in self?.applySettings() })
+        if ProcessInfo.processInfo.environment["PAINT_SHOW_SHORTCUTS"] == "1" { // development aid; after init so didSet runs
+            DispatchQueue.main.async { [weak self] in self?.showsCheatSheet = true }
+        }
         applySettings()
         statusBar.setImageSize(document.canvasSize)
         statusBar.setZoom(1)
@@ -119,6 +131,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
             if event.type == .flagsChanged { // modifier cursors (Cmd on a guide, Option eyedropper), whoever is first responder
                 self.canvas.refreshCursor()
                 return event
+            }
+            if event.type == .keyDown, self.showsCheatSheet, event.keyCode == 53 { // escape
+                self.showsCheatSheet = false
+                return nil
             }
             if self.window?.firstResponder is NSTextView { return event }
             if event.keyCode == 49 { // space: temporary hand tool while held
@@ -136,46 +152,47 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         if let m = keyMonitor { NSEvent.removeMonitor(m) }
     }
 
-    /// Photoshop-style single-key shortcuts (no Cmd / Ctrl / Opt): `[` `]` brush size, Shift+`[` `]` opacity,
-    /// digits opacity 10–100 %, and tool keys handled by `handleToolKey`.
+    /// Single-key shortcuts from `Shortcuts` (no Cmd / Ctrl / Opt): tools, colours, brush size and opacity.
     private func handleShortcut(_ event: NSEvent) -> Bool {
-        guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
-              let chars = event.charactersIgnoringModifiers, chars.count == 1 else { return false }
-        let shift = event.modifierFlags.contains(.shift)
-        switch chars {
-        case "[", "{":
-            if shift { state.opacity -= 0.1 } else { state.lineWidth -= Self.sizeStep(state.lineWidth, up: false) }
-        case "]", "}":
-            if shift { state.opacity += 0.1 } else { state.lineWidth += Self.sizeStep(state.lineWidth, up: true) }
-        case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-            let n = Int(chars)!
+        guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return false }
+        let s = Shortcuts.self
+        if s.smallerBrush.matches(event) {
+            state.lineWidth -= Self.sizeStep(state.lineWidth, up: false)
+        } else if s.largerBrush.matches(event) {
+            state.lineWidth += Self.sizeStep(state.lineWidth, up: true)
+        } else if s.lessOpacity.matches(event) {
+            state.opacity -= 0.1
+        } else if s.moreOpacity.matches(event) {
+            state.opacity += 0.1
+        } else if s.opacityDigits.matches(event), let n = event.characters(byApplyingModifiers: []).flatMap({ Int($0) }) {
             state.opacity = n == 0 ? 1 : CGFloat(n) / 10
-        default:
-            return handleToolKey(chars.lowercased(), shift: shift)
+        } else {
+            return handleToolKey(event)
         }
         canvas.showSizePreview()
         return true
     }
 
-    /// B brush (Shift+B toggles brush / pencil), N pencil, E eraser, G fill, I eyedropper, T text,
-    /// M rectangle selection, L free-form selection, Z zoom, U shapes, X swap colours, D default colours.
-    private func handleToolKey(_ key: String, shift: Bool) -> Bool {
-        switch key {
-        case "b":
-            if shift, state.tool.isBrush { state.tool = .pencil } else { state.tool = .brush(state.lastBrush) }
-        case "n": state.tool = .pencil
-        case "e": state.tool = .eraser
-        case "g": state.tool = .fill
-        case "i": state.tool = .colorPicker
-        case "t": state.tool = .text
-        case "m", "s": state.tool = .selectRectangle
-        case "l": state.tool = .selectFreeform
-        case "z": state.tool = .magnifier
-        case "u": state.tool = .shape(state.lastShape)
-        case "x": swap(&state.color1, &state.color2)
-        case "d": state.color1 = .black; state.color2 = .white
-        default: return false
-        }
+    private func handleToolKey(_ event: NSEvent) -> Bool {
+        let s = Shortcuts.self
+        let tools: [(ShortcutItem, () -> Void)] = [
+            (s.toggleBrushPencil, { [state] in state.tool = state.tool.isBrush ? .pencil : .brush(state.lastBrush) }),
+            (s.brush, { [state] in state.tool = .brush(state.lastBrush) }),
+            (s.pencil, { [state] in state.tool = .pencil }),
+            (s.eraser, { [state] in state.tool = .eraser }),
+            (s.fill, { [state] in state.tool = .fill }),
+            (s.colorPicker, { [state] in state.tool = .colorPicker }),
+            (s.text, { [state] in state.tool = .text }),
+            (s.rectangleSelect, { [state] in state.tool = .selectRectangle }),
+            (s.freeformSelect, { [state] in state.tool = .selectFreeform }),
+            (s.magnifier, { [state] in state.tool = .magnifier }),
+            (s.shapes, { [state] in state.tool = .shape(state.lastShape) }),
+            (s.swapColors, { [state] in swap(&state.color1, &state.color2) }),
+            (s.defaultColors, { [state] in state.color1 = .black; state.color2 = .white }),
+            (s.colorPanel, { AppSettings.showColorPanel.toggle() }),
+        ]
+        guard let action = tools.first(where: { $0.0.matches(event) })?.1 else { return false }
+        action()
         return true
     }
 
@@ -238,12 +255,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
             return b
         }
         _ = stripSeparator()
-        _ = stripButton("square.and.arrow.down", Theme.tip(L("Save"), "⌘S")) { NSApp.sendAction(#selector(NSDocument.save(_:)), to: nil, from: nil) }
+        _ = stripButton("square.and.arrow.down", Shortcuts.save.tip()) { NSApp.sendAction(#selector(NSDocument.save(_:)), to: nil, from: nil) }
         _ = stripButton("square.and.arrow.up", L("Share")) { [weak self] in self?.shareImage(nil) }
         _ = stripSeparator()
-        undoButton = stripButton("arrow.uturn.backward", Theme.tip(L("Undo"), "⌘Z")) { [weak self] in self?.paintDocument.undoManager?.undo() }
-        redoButton = stripButton("arrow.uturn.forward", Theme.tip(L("Redo"), "⇧⌘Z / ⌘Y")) { [weak self] in self?.paintDocument.undoManager?.redo() }
-        settingsButton = RibbonButton(symbol: "gearshape", tooltip: Theme.tip(L("Settings"), "⌘,"))
+        undoButton = stripButton("arrow.uturn.backward", Shortcuts.undo.tip()) { [weak self] in self?.paintDocument.undoManager?.undo() }
+        redoButton = stripButton("arrow.uturn.forward", Shortcuts.redo.tip()) { [weak self] in self?.paintDocument.undoManager?.redo() }
+        settingsButton = RibbonButton(symbol: "gearshape", tooltip: Shortcuts.settings.tip(L("Settings")))
         settingsButton.preferredSize = NSSize(width: 30, height: 26)
         settingsButton.onClick = { PreferencesWindowController.shared.show() }
         menuStrip.addSubview(settingsButton)
@@ -272,12 +289,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         hRuler.canvas = canvas; vRuler.canvas = canvas
         root.addSubview(hRuler); root.addSubview(vRuler); root.addSubview(rulerCorner)
 
-        sizeSlider = VerticalSliderView(symbol: "line.3.horizontal", tooltip: Theme.tip(L("Size"), "[ ]"), min: 1, max: 100) { "\(Int($0))" }
+        sizeSlider = VerticalSliderView(symbol: "line.3.horizontal", tooltip: Theme.tip(L("Size"), Shortcuts.smallerBrush.display + " " + Shortcuts.largerBrush.display), min: 1, max: 100) { "\(Int($0))" }
         sizeSlider.onChange = { [weak self] v in
             self?.state.lineWidth = CGFloat(v)
             self?.canvas.showSizePreview()
         }
-        opacitySlider = VerticalSliderView(symbol: "drop.halffull", tooltip: Theme.tip(L("Opacity"), "⇧[ ] · 1–0"), min: 0, max: 100) { "\(Int($0))%" }
+        opacitySlider = VerticalSliderView(symbol: "drop.halffull", tooltip: Theme.tip(L("Opacity"), Shortcuts.lessOpacity.display + " " + Shortcuts.moreOpacity.display + " · " + Shortcuts.opacityDigits.display), min: 0, max: 100) { "\(Int($0))%" }
         opacitySlider.onChange = { [weak self] v in
             self?.state.opacity = CGFloat(v) / 100
             self?.canvas.showSizePreview()
@@ -291,6 +308,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         root.addSubview(colorPanel)
 
         root.addSubview(toast)
+        cheatSheet.isHidden = !showsCheatSheet
+        cheatSheet.onDismiss = { [weak self] in self?.showsCheatSheet = false }
+        root.addSubview(cheatSheet)
 
         statusBar.onZoomChanged = { [weak self] z in self?.canvas.setZoom(z) }
         statusBar.onZoomIn = { [weak self] in self?.zoomIn(nil) }
@@ -364,6 +384,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         let sliderH = max(80, (middleH - rulerT - 36) / 2)
         sizeSlider.frame = CGRect(x: rulerT + 12, y: y + rulerT + 12, width: 36, height: sliderH)
         opacitySlider.frame = CGRect(x: rulerT + 12, y: y + rulerT + 12 + sliderH + 12, width: 36, height: sliderH)
+        cheatSheet.frame = CGRect(origin: .zero, size: size)
         updateRulers()
     }
 
@@ -492,6 +513,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
     @objc func toggleStatusBar(_ sender: Any?) { AppSettings.showStatusBar.toggle() }
 
     @objc func toggleLayersPanel(_ sender: Any?) { AppSettings.showLayersPanel.toggle() }
+
+    @objc func toggleCheatSheet(_ sender: Any?) { showsCheatSheet.toggle() }
 
     @objc func toggleColorPanel(_ sender: Any?) { AppSettings.showColorPanel.toggle() }
 
@@ -644,6 +667,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         case #selector(toggleStatusBar(_:)): item.state = showStatusBar ? .on : .off
         case #selector(toggleLayersPanel(_:)): item.state = showLayersPanel ? .on : .off
         case #selector(toggleColorPanel(_:)): item.state = showColorPanel ? .on : .off
+        case #selector(toggleCheatSheet(_:)): item.state = showsCheatSheet ? .on : .off
         case #selector(toggleTransparentSelection(_:)): item.state = state.transparentSelection ? .on : .off
         case #selector(cropToSelection(_:)), #selector(invertSelection(_:)): return canvas.selection != nil
         case #selector(deleteLayer(_:)): return doc.layers.count > 1

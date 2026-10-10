@@ -125,7 +125,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
     private var wantsOptionPick: Bool {
         if optionPickButton != nil { return true }
         return mouseInside && !isSpaceDown && !isToolTracking && !isDraggingCanvasHandle && !isMovingGuide
-            && panStart == nil && NSEvent.modifierFlags.contains(.option) && toolAllowsOptionPick
+            && panStart == nil && Shortcuts.pickColor.isHeld(NSEvent.modifierFlags) && toolAllowsOptionPick
     }
 
     /// Re-evaluates the Option eyedropper for a pointer at `viewPoint` (nil when the pointer left the canvas).
@@ -675,7 +675,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
             (panStart != nil ? NSCursor.closedHand : NSCursor.openHand).set()
             return
         }
-        if NSEvent.modifierFlags.contains(.command), let i = guideIndex(near: viewPoint) {
+        if Shortcuts.moveGuide.isHeld(NSEvent.modifierFlags), let i = guideIndex(near: viewPoint) {
             (guides[i].axis == .horizontal ? NSCursor.resizeUpDown : NSCursor.resizeLeftRight).set()
             return
         }
@@ -731,7 +731,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
         hideSizePreview()
         window?.makeFirstResponder(self)
         let p = convert(event.locationInWindow, from: nil)
-        if event.modifierFlags.contains(.command), !isSpaceDown, let i = guideIndex(near: p) {
+        if Shortcuts.moveGuide.isHeld(event.modifierFlags), !isSpaceDown, let i = guideIndex(near: p) {
             draggingGuide = guides.remove(at: i)
             isMovingGuide = true
             return
@@ -750,7 +750,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
             }
             return
         }
-        if event.modifierFlags.contains(.option), toolAllowsOptionPick {
+        if Shortcuts.pickColor.isHeld(event.modifierFlags), toolAllowsOptionPick {
             optionPickButton = .primary
             sampleColor(at: imagePoint(fromView: p), button: .primary)
             updateOptionPick(at: p)
@@ -832,7 +832,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
     override func rightMouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
         let p = convert(event.locationInWindow, from: nil)
-        if event.modifierFlags.contains(.option), !isSpaceDown, toolAllowsOptionPick {
+        if Shortcuts.pickColor.isHeld(event.modifierFlags), !isSpaceDown, toolAllowsOptionPick {
             optionPickButton = .secondary
             sampleColor(at: imagePoint(fromView: p), button: .secondary)
             updateOptionPick(at: p)
@@ -864,9 +864,9 @@ final class CanvasView: NSView, NSMenuItemValidation {
         tool.mouseUp(at: imagePoint(fromView: p), button: .secondary, event: event)
     }
 
-    /// Option + scroll or Command + scroll zooms around the pointer; plain scrolling pans.
+    /// `Shortcuts.zoomAtPointer` (Option / Command + scroll) zooms around the pointer; plain scrolling pans.
     override func scrollWheel(with event: NSEvent) {
-        if !event.modifierFlags.intersection([.option, .command]).isEmpty {
+        if Shortcuts.zoomAtPointer.isHeld(event.modifierFlags) {
             let p = imagePoint(fromView: convert(event.locationInWindow, from: nil))
             let factor = pow(1.0025, -event.scrollingDeltaY * (event.hasPreciseScrollingDeltas ? 1 : 10))
             setZoom(zoom * factor, anchor: p)
