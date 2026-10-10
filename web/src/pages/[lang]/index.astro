@@ -5,7 +5,7 @@ import FeatureRow from '../../components/FeatureRow.astro';
 import Placeholder from '../../components/Placeholder.astro';
 import Shot from '../../components/Shot.astro';
 import { LANGS, type Lang, t } from '../../i18n/ui';
-import { APP_NAME, APP_STORE_URL, GITHUB_BUILD_URL, GITHUB_RELEASES_URL, GITHUB_URL, SITE_URL } from '../../site';
+import { APP_NAME, APP_STORE_URL, GITHUB_BUILD_URL, DOWNLOAD_URL, GITHUB_URL, SITE_URL } from '../../site';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -58,7 +58,7 @@ const jsonLd = {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.9-1.7 0-3.2 1-4.1 2.5-1.8 3-.5 7.6 1.3 10.1.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.3.8c1.4 0 2.2-1.3 3-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4zM14 5.2c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.5 2.9-1.3z"/></svg>
         {tr('hero.cta')}
       </a>
-      <a href={GITHUB_RELEASES_URL} class="btn-secondary">
+      <a href={DOWNLOAD_URL} class="btn-secondary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
         {tr('hero.secondary')}
       </a>
