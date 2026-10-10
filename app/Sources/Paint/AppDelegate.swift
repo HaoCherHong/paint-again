@@ -11,17 +11,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Theme (System / Light / Dark)
 
-    private static let themeKey = "AppearanceTheme"
     private let themeMenu = NSMenu(title: L("Appearance"))
     private var liquidGlassItem: NSMenuItem?
-
-    /// 0 = follow the system, 1 = light, 2 = dark.
-    private var theme: Int {
-        get { UserDefaults.standard.integer(forKey: Self.themeKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Self.themeKey); applyTheme() }
-    }
+    private var settingsObserver: Any?
 
     private func applyTheme() {
+        let theme = AppSettings.theme
         switch theme {
         case 1: NSApp.appearance = NSAppearance(named: .aqua)
         case 2: NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -31,29 +26,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         liquidGlassItem?.state = GlassHost.liquidGlassEnabled ? .on : .off
     }
 
-    @objc private func selectTheme(_ sender: NSMenuItem) { theme = sender.tag }
+    @objc private func selectTheme(_ sender: NSMenuItem) { AppSettings.theme = sender.tag }
 
-    @objc private func toggleLiquidGlass(_ sender: NSMenuItem) {
-        GlassHost.liquidGlassEnabled.toggle()
+    @objc private func toggleLiquidGlass(_ sender: NSMenuItem) { setLiquidGlass(!GlassHost.liquidGlassEnabled) }
+
+    func setLiquidGlass(_ enabled: Bool) {
+        GlassHost.liquidGlassEnabled = enabled
         applyTheme()
         for window in NSApp.windows { window.contentView?.needsDisplay = true }
+        NotificationCenter.default.post(name: .settingsChanged, object: nil)
     }
+
+    @objc private func showSettings(_ sender: Any?) { PreferencesWindowController.shared.show() }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // Offscreen snapshots cannot render Liquid Glass; use the fallback materials for that run only.
         if ProcessInfo.processInfo.environment["PAINT_SNAPSHOT"] != nil { GlassHost.forceFallback = true }
+        _ = AppSettings.languageAtLaunch
         NSApp.mainMenu = buildMainMenu()
         applyTheme()
+        settingsObserver = NotificationCenter.default.addObserver(forName: .settingsChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.applyTheme()
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.activate(ignoringOtherApps: true)
         DebugSelfTest.runIfRequested()
+        if ProcessInfo.processInfo.environment["PAINT_OPEN_SETTINGS"] == "1" { PreferencesWindowController.shared.show() }
         scheduleDebugSnapshotIfRequested()
     }
 
     /// Development aid: `PAINT_SNAPSHOT=/path.png` writes a render of the front window after launch,
-    /// `PAINT_SNAPSHOT_DELAY` (seconds) adjusts the wait and `PAINT_QUIT=1` terminates afterwards.
+    /// `PAINT_SNAPSHOT_DELAY` (seconds) adjusts the wait, `PAINT_SNAPSHOT_KEYWINDOW=1` captures the key window
+    /// (`PAINT_OPEN_SETTINGS=1` opens the Settings window first) and `PAINT_QUIT=1` terminates afterwards.
     private func scheduleDebugSnapshotIfRequested() {
         let env = ProcessInfo.processInfo.environment
         guard let path = env["PAINT_SNAPSHOT"] else { return }
@@ -99,6 +105,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Application menu
         let appMenu = NSMenu()
         appMenu.addItem(item(L("About Paint Again"), #selector(NSApplication.orderFrontStandardAboutPanel(_:))))
+        appMenu.addItem(.separator())
+        let settings = item(L("Settings…"), #selector(showSettings(_:)), ",")
+        settings.target = self
+        appMenu.addItem(settings)
         appMenu.addItem(.separator())
         let services = NSMenu(title: L("Services"))
         let servicesItem = item(L("Services"), nil)
@@ -174,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(item(L("Clear Guides"), #selector(MainWindowController.clearGuides(_:))))
         viewMenu.addItem(item(L("Status Bar"), #selector(MainWindowController.toggleStatusBar(_:))))
         viewMenu.addItem(item(L("Layers Panel"), #selector(MainWindowController.toggleLayersPanel(_:)), "l"))
-        viewMenu.addItem(item(L("Show Toolbar on Windows"), #selector(MainWindowController.toggleTopToolbar(_:))))
+        viewMenu.addItem(item(L("Show Toolbar"), #selector(MainWindowController.toggleTopToolbar(_:)), "t", [.command, .option]))
         viewMenu.addItem(.separator())
         themeMenu.removeAllItems()
         for (tag, title) in [(0, L("System")), (1, L("Light")), (2, L("Dark"))] {

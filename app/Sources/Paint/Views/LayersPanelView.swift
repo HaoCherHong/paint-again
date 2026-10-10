@@ -2,6 +2,9 @@ import AppKit
 
 /// Floating Layers card: "+" on top, layer thumbnails (top layer first) and the fixed Background entry at the bottom.
 final class LayersPanelView: NSView {
+    /// The card floats over the canvas, whose tracking area would otherwise keep its (invisible) brush cursor here.
+    override func resetCursorRects() { addCursorRect(bounds, cursor: .arrow) }
+
     let document: PaintDocument
     private let card = GlassHost(cornerRadius: 10, material: .blur, shadow: true, veil: Theme.cardVeil)
     private let scroll = NSScrollView()

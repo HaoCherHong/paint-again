@@ -67,11 +67,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
     private var layersPanel: LayersPanelView!
     private let statusBar = StatusBarView()
 
-    private var showRulers = false
-    private var showStatusBar = true
-    private var showLayersPanel = false
-    private static let topToolbarKey = "ShowTopToolbar"
-    private var showTopToolbar = UserDefaults.standard.object(forKey: MainWindowController.topToolbarKey) as? Bool ?? true
+    private var showRulers: Bool { AppSettings.showRulers }
+    private var showStatusBar: Bool { AppSettings.showStatusBar }
+    private var showLayersPanel: Bool { AppSettings.showLayersPanel }
+    private var showTopToolbar: Bool { AppSettings.showTopToolbar }
     private let toast = ToastView()
     /// Liquid Glass slab behind the Toolbar, Ribbon and Text bar (plain container before macOS 26).
     private let chromeHost = GlassHost(cornerRadius: 0, fallback: .none, veil: Theme.glassBand)
@@ -107,6 +106,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         observers.append(NotificationCenter.default.addObserver(forName: .documentDidChange, object: document, queue: .main) { [weak self] _ in self?.documentChanged() })
         observers.append(NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak self] _ in self?.updateRulers() })
         observers.append(NotificationCenter.default.addObserver(forName: .NSUndoManagerCheckpoint, object: document.undoManager, queue: .main) { [weak self] _ in self?.refreshUndo() })
+        observers.append(NotificationCenter.default.addObserver(forName: .settingsChanged, object: nil, queue: .main) { [weak self] _ in self?.applySettings() })
+        applySettings()
         statusBar.setImageSize(document.canvasSize)
         statusBar.setZoom(1)
         refreshUndo()
@@ -236,13 +237,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         _ = stripSeparator()
         undoButton = stripButton("arrow.uturn.backward", Theme.tip(L("Undo"), "⌘Z")) { [weak self] in self?.paintDocument.undoManager?.undo() }
         redoButton = stripButton("arrow.uturn.forward", Theme.tip(L("Redo"), "⇧⌘Z")) { [weak self] in self?.paintDocument.undoManager?.redo() }
-        settingsButton = RibbonButton(symbol: "gearshape", tooltip: L("Settings"))
+        settingsButton = RibbonButton(symbol: "gearshape", tooltip: Theme.tip(L("Settings"), "⌘,"))
         settingsButton.preferredSize = NSSize(width: 30, height: 26)
-        settingsButton.onClick = { [weak self] in
-            guard let self else { return }
-            let m = AppDelegate.shared.viewMenu
-            m.popUp(positioning: nil, at: NSPoint(x: 0, y: self.settingsButton.bounds.maxY + 4), in: self.settingsButton)
-        }
+        settingsButton.onClick = { PreferencesWindowController.shared.show() }
         menuStrip.addSubview(settingsButton)
         chromeHost.content.addSubview(menuStrip)
 
@@ -267,7 +264,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         root.addSubview(scrollView)
 
         hRuler.canvas = canvas; vRuler.canvas = canvas
-        hRuler.isHidden = true; vRuler.isHidden = true; rulerCorner.isHidden = true
         root.addSubview(hRuler); root.addSubview(vRuler); root.addSubview(rulerCorner)
 
         sizeSlider = VerticalSliderView(symbol: "line.3.horizontal", tooltip: Theme.tip(L("Size"), "[ ]"), min: 1, max: 100) { "\(Int($0))" }
@@ -284,11 +280,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         root.addSubview(opacitySlider)
 
         layersPanel = LayersPanelView(document: paintDocument)
-        layersPanel.isHidden = true
         root.addSubview(layersPanel)
 
         root.addSubview(toast)
-        ribbon.setHistoryVisible(!showTopToolbar)
 
         statusBar.onZoomChanged = { [weak self] z in self?.canvas.setZoom(z) }
         statusBar.onZoomIn = { [weak self] in self?.zoomIn(nil) }
@@ -441,21 +435,25 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
     @objc func zoomActual(_ sender: Any?) { canvas.setZoom(1) }
     @objc func zoomToFit(_ sender: Any?) { canvas.zoomToFit(in: scrollView.contentView.bounds.size) }
 
-    @objc func toggleGridlines(_ sender: Any?) { canvas.showGrid.toggle() }
-    @objc func toggleGuides(_ sender: Any?) { canvas.showGuides.toggle() }
+    @objc func toggleGridlines(_ sender: Any?) { AppSettings.showGridlines.toggle() }
+    @objc func toggleGuides(_ sender: Any?) { AppSettings.showGuides.toggle() }
     @objc func clearGuides(_ sender: Any?) { canvas.guides.removeAll() }
 
     @objc func toggleRulers(_ sender: Any?) {
-        showRulers.toggle()
-        hRuler.isHidden = !showRulers; vRuler.isHidden = !showRulers; rulerCorner.isHidden = !showRulers
-        root.needsLayout = true
+        AppSettings.showRulers.toggle()
         if showRulers { showToast(L("Drag from a ruler onto the canvas to add a guide.")) }
     }
 
-    @objc func toggleTopToolbar(_ sender: Any?) {
-        showTopToolbar.toggle()
-        UserDefaults.standard.set(showTopToolbar, forKey: Self.topToolbarKey)
+    @objc func toggleTopToolbar(_ sender: Any?) { AppSettings.showTopToolbar.toggle() }
+
+    /// Mirrors every `AppSettings` view option into this window.
+    private func applySettings() {
+        hRuler.isHidden = !showRulers; vRuler.isHidden = !showRulers; rulerCorner.isHidden = !showRulers
+        layersPanel.isHidden = !showLayersPanel
+        ribbon.setLayersPanelVisible(showLayersPanel)
         ribbon.setHistoryVisible(!showTopToolbar)
+        canvas.showGrid = AppSettings.showGridlines
+        canvas.showGuides = AppSettings.showGuides
         root.needsLayout = true
     }
 
@@ -474,17 +472,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         root.needsLayout = true
     }
 
-    @objc func toggleStatusBar(_ sender: Any?) {
-        showStatusBar.toggle()
-        root.needsLayout = true
-    }
+    @objc func toggleStatusBar(_ sender: Any?) { AppSettings.showStatusBar.toggle() }
 
-    @objc func toggleLayersPanel(_ sender: Any?) {
-        showLayersPanel.toggle()
-        layersPanel.isHidden = !showLayersPanel
-        ribbon.setLayersPanelVisible(showLayersPanel)
-        root.needsLayout = true
-    }
+    @objc func toggleLayersPanel(_ sender: Any?) { AppSettings.showLayersPanel.toggle() }
 
     // MARK: - Edit actions
 

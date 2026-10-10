@@ -196,7 +196,7 @@
 "Clear Guides" = "Clear Guides";
 "Drag from a ruler onto the canvas to add a guide." = "Drag from a ruler onto the canvas to add a guide.";
 "Hold ⌘ to move a guide." = "Hold ⌘ to move a guide.";
-"Show Toolbar on Windows" = "Show Toolbar on Windows";
+"Show Toolbar" = "Show Toolbar";
 "Select an area first, then crop." = "Select an area first, then crop.";
 "No subject found to keep." = "No subject found to keep.";
 "System" = "System";
@@ -211,3 +211,9 @@
 "Hide Paint Again" = "Hide Paint Again";
 "Quit Paint Again" = "Quit Paint Again";
 "Paint Again Help" = "Paint Again Help";
+"Settings…" = "Settings…";
+"Language:" = "Language:";
+"Appearance:" = "Appearance:";
+"Window:" = "Window:";
+"Relaunch Now" = "Relaunch Now";
+"The language changes after Paint Again is relaunched." = "The language changes after Paint Again is relaunched.";

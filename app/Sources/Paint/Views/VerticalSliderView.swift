@@ -2,6 +2,9 @@ import AppKit
 
 /// Floating vertical slider card shown at the left of the canvas (brush Size and Opacity).
 final class VerticalSliderView: NSView {
+    /// The card floats over the canvas, whose tracking area would otherwise keep its (invisible) brush cursor here.
+    override func resetCursorRects() { addCursorRect(bounds, cursor: .arrow) }
+
     private let host = GlassHost(cornerRadius: 10, material: .blur, shadow: true, veil: Theme.cardVeil)
     private let icon = NSImageView()
     private let slider = NSSlider()

@@ -498,6 +498,36 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     private var mouseInside = false
 
+    /// Tracking areas ignore overlapping siblings (the Size / Opacity and Layers cards float over the scroll
+    /// view, and `cursorUpdate` can arrive for a pointer that has already left), so the view under the pointer
+    /// decides whether the canvas owns the cursor.
+    private func pointerIsOverCanvas(windowPoint: CGPoint) -> Bool {
+        guard let window, window.isKeyWindow, let content = window.contentView else { return false }
+        var hit = content.hitTest(windowPoint)
+        while let v = hit {
+            if v === self { return true }
+            hit = v.superview
+        }
+        return false
+    }
+
+    /// Re-evaluates the hover state and the cursor for a pointer position in window coordinates.
+    private func pointerMoved(toWindowPoint wp: CGPoint) {
+        let over = pointerIsOverCanvas(windowPoint: wp)
+        if over != mouseInside {
+            mouseInside = over
+            if !over { pointerLeft() }
+        }
+        guard over else { return }
+        updateCursor(at: convert(wp, from: nil))
+    }
+
+    private func pointerLeft() {
+        delegate?.canvasCursorMoved(nil)
+        tool.mouseExited()
+        NSCursor.arrow.set()
+    }
+
     /// Applies the cursor for the tool at the given view point.
     private func updateCursor(at viewPoint: CGPoint) {
         guard mouseInside, !isDraggingCanvasHandle else { return }
@@ -520,37 +550,36 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     /// Re-applies the cursor after the tool or its state changed while the mouse is over the canvas.
     func refreshCursor() {
-        guard mouseInside, let window else { return }
-        updateCursor(at: convert(window.mouseLocationOutsideOfEventStream, from: nil))
+        guard let window else { return }
+        pointerMoved(toWindowPoint: window.mouseLocationOutsideOfEventStream)
     }
 
     override func cursorUpdate(with event: NSEvent) {
         logEvent("cursorUpdate")
-        mouseInside = true
-        updateCursor(at: convert(event.locationInWindow, from: nil))
+        pointerMoved(toWindowPoint: event.locationInWindow)
     }
 
     override func mouseEntered(with event: NSEvent) {
         logEvent("mouseEntered")
-        mouseInside = true
-        updateCursor(at: convert(event.locationInWindow, from: nil))
+        pointerMoved(toWindowPoint: event.locationInWindow)
     }
 
     override func mouseMoved(with event: NSEvent) {
         logEvent("mouseMoved")
         hideSizePreview()
+        pointerMoved(toWindowPoint: event.locationInWindow)
+        guard mouseInside else { return }
         let p = convert(event.locationInWindow, from: nil)
         let ip = imagePoint(fromView: p)
         delegate?.canvasCursorMoved(document.canvasRect.contains(ip) ? ip.floored : nil)
         tool.mouseMoved(to: ip)
-        updateCursor(at: p)
     }
 
     override func mouseExited(with event: NSEvent) {
+        logEvent("mouseExited")
+        guard mouseInside else { return }
         mouseInside = false
-        delegate?.canvasCursorMoved(nil)
-        tool.mouseExited()
-        NSCursor.arrow.set()
+        pointerLeft()
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -637,7 +666,7 @@ final class CanvasView: NSView, NSMenuItemValidation {
             return
         }
         tool.mouseUp(at: imagePoint(fromView: p), button: .primary, event: event)
-        updateCursor(at: p)
+        pointerMoved(toWindowPoint: event.locationInWindow)
     }
 
     override func rightMouseDown(with event: NSEvent) {

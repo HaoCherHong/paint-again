@@ -196,7 +196,7 @@
 "Clear Guides" = "清除參考線";
 "Drag from a ruler onto the canvas to add a guide." = "從尺規往畫布拖曳即可新增參考線。";
 "Hold ⌘ to move a guide." = "按住 ⌘ 可移動參考線。";
-"Show Toolbar on Windows" = "在視窗顯示工具列";
+"Show Toolbar" = "顯示工具列";
 "Select an area first, then crop." = "請先選取要保留的範圍，再裁剪。";
 "No subject found to keep." = "找不到可保留的主體。";
 "System" = "跟隨系統";
@@ -211,3 +211,9 @@
 "Hide Paint Again" = "隱藏 Paint Again";
 "Quit Paint Again" = "結束 Paint Again";
 "Paint Again Help" = "Paint Again 說明";
+"Settings…" = "設定…";
+"Language:" = "語言：";
+"Appearance:" = "外觀：";
+"Window:" = "視窗：";
+"Relaunch Now" = "立即重新啟動";
+"The language changes after Paint Again is relaunched." = "語言會在重新啟動 Paint Again 後變更。";
