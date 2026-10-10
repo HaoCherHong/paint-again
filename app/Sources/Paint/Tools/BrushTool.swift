@@ -7,8 +7,9 @@ final class BrushTool: Tool {
     private var painter: BrushPainter?
     private var timer: Timer?
     private var hoverPoint: CGPoint?
-    /// End of the previous stroke; Shift-click paints a straight segment from here.
-    private var lastStrokeEnd: CGPoint?
+    /// Set while Shift is held during a drag: new points are projected onto a 16-direction line and the pointer
+    /// is held on it, so releasing Shift continues freehand from where the stroke is.
+    private var lineLock: StrokeLineLock?
 
     init(brush: BrushKind, canvas: CanvasView) {
         self.brush = brush
@@ -22,12 +23,8 @@ final class BrushTool: Tool {
         canvas.strokeBuffer = painter.buffer
         canvas.strokeBlend = .normal
         canvas.strokeAlpha = painter.compositeAlpha * state.opacity
-        if event.modifierFlags.contains(.shift), let from = lastStrokeEnd {
-            painter.begin(at: from)
-            painter.extend(to: p)
-        } else {
-            painter.begin(at: p)
-        }
+        painter.begin(at: p)
+        lineLock = nil
         hoverPoint = p
         canvas.needsDisplay = true
         if brush == .airbrush {
@@ -40,16 +37,32 @@ final class BrushTool: Tool {
     }
 
     override func mouseDragged(to p: CGPoint, button: MouseButton, event: NSEvent) {
-        hoverPoint = p
-        guard let painter else { return }
-        painter.extend(to: p)
+        guard painter != nil else { hoverPoint = p; return }
+        hoverPoint = addPoint(p, shift: event.modifierFlags.contains(.shift)) ?? p
         canvas.needsDisplay = true
+    }
+
+    /// Extends the stroke freehand, or with Shift to its projection onto the locked line; returns the
+    /// point painted.
+    @discardableResult
+    private func addPoint(_ p: CGPoint, shift: Bool) -> CGPoint? {
+        guard let painter else { return nil }
+        guard shift, let last = painter.points.last else {
+            lineLock = nil
+            painter.extend(to: p)
+            return p
+        }
+        if lineLock == nil { lineLock = StrokeLineLock(anchor: last) }
+        guard let q = lineLock?.constrain(p) else { return nil }
+        if q.distance(to: p) > 0.01 { canvas.warpPointer(toImage: q) }
+        painter.extend(to: q)
+        return q
     }
 
     override func mouseUp(at p: CGPoint, button: MouseButton, event: NSEvent) {
         guard let painter else { return }
         timer?.invalidate(); timer = nil
-        painter.extend(to: p)
+        addPoint(p, shift: event.modifierFlags.contains(.shift))
         if let img = painter.buffer.makeImage() {
             let alpha = canvas.strokeAlpha
             document.performLayerChange(brush.title) { layer in
@@ -58,7 +71,7 @@ final class BrushTool: Tool {
         }
         canvas.strokeBuffer = nil
         self.painter = nil
-        lastStrokeEnd = p
+        lineLock = nil
     }
 
     override func mouseMoved(to p: CGPoint) {

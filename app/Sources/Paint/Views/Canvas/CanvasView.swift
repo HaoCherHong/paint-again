@@ -362,6 +362,15 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     func imagePoint(fromView p: CGPoint) -> CGPoint { (p - canvasOrigin) / zoom }
     func viewPoint(fromImage p: CGPoint) -> CGPoint { p * zoom + canvasOrigin }
+
+    /// Moves the system pointer onto an image point (used to keep it on a Shift-locked stroke line).
+    func warpPointer(toImage p: CGPoint) {
+        guard let window, let primary = NSScreen.screens.first else { return }
+        let screen = window.convertPoint(toScreen: convert(viewPoint(fromImage: p), to: nil))
+        CGWarpMouseCursorPosition(CGPoint(x: screen.x, y: primary.frame.maxY - screen.y))
+        // Re-associating right after a warp drops the short input freeze macOS applies to warps.
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
     func viewRect(fromImage r: CGRect) -> CGRect {
         CGRect(x: r.minX * zoom + canvasOrigin.x, y: r.minY * zoom + canvasOrigin.y, width: r.width * zoom, height: r.height * zoom)
     }

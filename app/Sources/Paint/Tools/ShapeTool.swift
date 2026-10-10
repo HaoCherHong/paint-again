@@ -85,9 +85,15 @@ final class ShapeTool: Tool {
         var q = p.rounded
         switch mode {
         case .creating:
+            // Shift: lines snap to the nearest 22.5° step (16 directions), other shapes keep a 1:1 box.
             if event.modifierFlags.contains(.shift) {
-                let d = max(abs(q.x - start.x), abs(q.y - start.y))
-                q = CGPoint(x: start.x + (q.x >= start.x ? d : -d), y: start.y + (q.y >= start.y ? d : -d))
+                let dx = q.x - start.x, dy = q.y - start.y
+                if usesPoints {
+                    q = Tool.snapped16(q, from: start).rounded
+                } else {
+                    let d = max(abs(dx), abs(dy))
+                    q = CGPoint(x: start.x + (dx >= 0 ? d : -d), y: start.y + (dy >= 0 ? d : -d))
+                }
             }
             if usesPoints {
                 pend.points = [start, q]
@@ -133,7 +139,7 @@ final class ShapeTool: Tool {
 
     override func keyDown(_ event: NSEvent) -> Bool {
         if event.keyCode == 36 || event.keyCode == 76, pending != nil { commit(); return true }
-        if event.keyCode == 53, pending != nil { cancel(); return true }
+        if [53, 51, 117].contains(event.keyCode), pending != nil { cancel(); return true } // escape, delete, forward delete
         return false
     }
 

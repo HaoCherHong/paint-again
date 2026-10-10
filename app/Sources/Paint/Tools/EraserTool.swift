@@ -3,6 +3,9 @@ import AppKit
 final class EraserTool: Tool {
     private var last: CGPoint = .zero
     private var active = false
+    /// Set while Shift is held during a drag: new points are projected onto a 16-direction line and the pointer
+    /// is held on it, so releasing Shift continues freehand from where the stroke is.
+    private var lineLock: StrokeLineLock?
 
     override func mouseDown(at p: CGPoint, button: MouseButton, event: NSEvent) {
         let bmp = Bitmap(width: Int(document.canvasSize.width), height: Int(document.canvasSize.height))
@@ -10,20 +13,35 @@ final class EraserTool: Tool {
         canvas.strokeAlpha = state.opacity
         canvas.strokeBlend = .destinationOut
         active = true
+        lineLock = nil
         last = p
         drawSegment(from: p, to: p)
     }
 
     override func mouseDragged(to p: CGPoint, button: MouseButton, event: NSEvent) {
-        hoverPoint = p
-        guard active else { return }
-        drawSegment(from: last, to: p)
-        last = p
+        guard active else { hoverPoint = p; return }
+        hoverPoint = addPoint(p, shift: event.modifierFlags.contains(.shift)) ?? last
+    }
+
+    /// Erases freehand to `p`, or with Shift to its projection onto the locked line; returns the point reached.
+    @discardableResult
+    private func addPoint(_ p: CGPoint, shift: Bool) -> CGPoint? {
+        var q = p
+        if !shift { lineLock = nil }
+        if shift {
+            if lineLock == nil { lineLock = StrokeLineLock(anchor: last) }
+            guard let c = lineLock?.constrain(p) else { return nil }
+            if c.distance(to: p) > 0.01 { canvas.warpPointer(toImage: c) }
+            q = c
+        }
+        drawSegment(from: last, to: q)
+        last = q
+        return q
     }
 
     override func mouseUp(at p: CGPoint, button: MouseButton, event: NSEvent) {
         guard active, let buf = canvas.strokeBuffer else { return }
-        drawSegment(from: last, to: p)
+        addPoint(p, shift: event.modifierFlags.contains(.shift))
         let alpha = canvas.strokeAlpha
         if let img = buf.makeImage() {
             document.performLayerChange(L("Eraser")) { layer in
@@ -32,6 +50,7 @@ final class EraserTool: Tool {
         }
         canvas.strokeBuffer = nil
         active = false
+        lineLock = nil
     }
 
     private func drawSegment(from a: CGPoint, to b: CGPoint) {
