@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/HaoCherHong/paint-again/releases/latest/download/PaintAgain.zip">Download</a> ·
   <a href="https://apps.apple.com/app/id6809540185">Mac App Store</a> ·
-  <a href="https://github.com/HaoCherHong/paint-again/releases/latest">Download</a> ·
   <a href="https://paintagain.app">Website</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="https://github.com/HaoCherHong/paint-again/issues">Issues</a>
@@ -53,17 +53,17 @@ Requires macOS 14 Sonoma or later, Apple silicon or Intel. Three ways, same app:
 
 | | Price | Updates |
 | --- | --- | --- |
-| [**Mac App Store**](https://apps.apple.com/app/id6809540185) | US$2.99, one-time — buying it is how you support development | automatic |
-| [**GitHub Releases**](https://github.com/HaoCherHong/paint-again/releases/latest) | free | download each new release |
+| [**Download**](https://github.com/HaoCherHong/paint-again/releases/latest/download/PaintAgain.zip) from GitHub Releases | free | download each new release |
 | [**Build from source**](#build-from-source) | free | `git pull` and rebuild |
+| [**Mac App Store**](https://apps.apple.com/app/id6809540185) | US$2.99, one-time — buying it is how you support development | automatic |
 
-The GitHub download is `PaintAgain-<version>.zip`, signed with the
+The GitHub download is `PaintAgain.zip`, signed with the
 maintainer's Developer ID and notarised by Apple. Unzip it, move
 `Paint Again.app` to Applications and open it. A `.sha256` file next to each
 zip lets you check the download:
 
 ```bash
-shasum -a 256 -c PaintAgain-<version>.zip.sha256
+shasum -a 256 -c PaintAgain.zip.sha256
 ```
 
 ## Build from source

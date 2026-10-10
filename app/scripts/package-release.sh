@@ -10,7 +10,9 @@
 #   VERSION               CFBundleShortVersionString override (e.g. 1.1.0)
 #   BUILD                 CFBundleVersion override
 #
-# Output: build/release/PaintAgain-<version>.zip and PaintAgain-<version>.zip.sha256.
+# Output: build/release/PaintAgain.zip and PaintAgain.zip.sha256. The name carries no version so
+# that https://github.com/HaoCherHong/paint-again/releases/latest/download/PaintAgain.zip always
+# serves the newest release (the website's download button links there); the release tag carries it.
 # The app runs in the App Sandbox with the same entitlements as the store build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -38,7 +40,7 @@ cp -R "build/Paint Again.app" "$APP"
 if [ -n "${VERSION:-}" ]; then $PB -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"; fi
 if [ -n "${BUILD:-}" ]; then $PB -c "Set :CFBundleVersion $BUILD" "$PLIST"; fi
 VER="$($PB -c 'Print :CFBundleShortVersionString' "$PLIST")"
-ZIP="$OUT/PaintAgain-$VER.zip"
+ZIP="$OUT/PaintAgain.zip"
 
 echo "== Signing"
 xattr -cr "$APP"
