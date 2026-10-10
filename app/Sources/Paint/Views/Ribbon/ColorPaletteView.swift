@@ -128,14 +128,26 @@ final class ColorPaletteView: NSView {
     override func mouseDown(with event: NSEvent) { handleClick(event, button: .primary) }
     override func rightMouseDown(with event: NSEvent) { handleClick(event, button: .secondary) }
 
+    /// A click picks a well or a colour; a left double-click on a well or a filled swatch then opens Edit colors
+    /// on the target well (the first click has already applied the swatch).
     private func handleClick(_ event: NSEvent, button: MouseButton) {
         let p = convert(event.locationInWindow, from: nil)
-        if wellRect(.primary).insetBy(dx: -4, dy: -4).contains(p) { target = .primary; return }
-        if wellRect(.secondary).insetBy(dx: -4, dy: -4).contains(p) { target = .secondary; return }
+        let opensEditor = button == .primary && event.clickCount == 2
+        if wellRect(.primary).insetBy(dx: -4, dy: -4).contains(p) {
+            target = .primary
+            if opensEditor { onEditColors?() }
+            return
+        }
+        if wellRect(.secondary).insetBy(dx: -4, dy: -4).contains(p) {
+            target = .secondary
+            if opensEditor { onEditColors?() }
+            return
+        }
         guard let i = hitIndex(p) else { return }
         if i == -1 { onEditColors?(); return }
         guard let c = swatchColor(i) else { return }
         let dest = button == .secondary ? MouseButton.secondary : target
         if dest == .primary { state.color1 = c } else { state.color2 = c }
+        if opensEditor { onEditColors?() }
     }
 }
