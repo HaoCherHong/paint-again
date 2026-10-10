@@ -12,6 +12,10 @@ final class PaintDocument: NSDocument {
     static let defaultSize = CGSize(width: 1152, height: 648)
 
     private(set) var canvasSize: CGSize = PaintDocument.defaultSize
+    /// Where the pixels that sat at (0, 0) when the document opened are in current image coordinates. It
+    /// moves when the canvas grows or shrinks from the left / top (and back on undo), so views can keep the
+    /// content still on screen.
+    private(set) var contentOrigin: CGPoint = .zero
     private(set) var layers: [Layer] = []
     /// Solid colour shown beneath all layers (the fixed "Background" entry of the Layers panel).
     private(set) var backgroundColor: NSColor = .white
@@ -126,11 +130,12 @@ final class PaintDocument: NSDocument {
         let activeIndex: Int
         let backgroundColor: NSColor
         let backgroundVisible: Bool
+        let contentOrigin: CGPoint
     }
 
     func captureAll() -> Snapshot {
         Snapshot(canvasSize: canvasSize, layers: layers.map { $0.snapshot() }, activeIndex: activeLayerIndex,
-                 backgroundColor: backgroundColor, backgroundVisible: backgroundVisible)
+                 backgroundColor: backgroundColor, backgroundVisible: backgroundVisible, contentOrigin: contentOrigin)
     }
 
     @objc private func restoreAll(_ box: SnapshotBox) {
@@ -142,6 +147,7 @@ final class PaintDocument: NSDocument {
         activeLayerIndex = s.activeIndex
         backgroundColor = s.backgroundColor
         backgroundVisible = s.backgroundVisible
+        contentOrigin = s.contentOrigin
         notifyLayersChanged()
         notifyChanged()
     }
@@ -300,6 +306,7 @@ final class PaintDocument: NSDocument {
                 layer.bitmap = bmp
             }
             canvasSize = size
+            contentOrigin = contentOrigin + offset
         }
     }
 

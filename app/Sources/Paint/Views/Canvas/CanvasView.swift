@@ -442,8 +442,17 @@ final class CanvasView: NSView, NSMenuItemValidation {
 
     // MARK: - Document / tool state
 
+    /// `document.contentOrigin` as last seen, to follow left / top canvas resizes (and their undo).
+    private var lastContentOrigin: CGPoint = .zero
+
     private func documentChanged() {
+        let shift = document.contentOrigin - lastContentOrigin
+        lastContentOrigin = document.contentOrigin
+        let anchor = visibleImageCenter
         updateFrameSize()
+        // Image coordinates moved with the content; scroll by the same amount so the pixels stay put on
+        // screen and only the canvas edge moves.
+        if shift != .zero { scrollImagePoint(anchor + shift, toVisible: visibleRect.center) }
         if optionPickActive { pickSource = makePickSource() }
         if let sel = selection, !document.canvasRect.contains(sel.rect), floating == nil {
             let clipped = sel.rect.intersection(document.canvasRect)
@@ -775,7 +784,9 @@ final class CanvasView: NSView, NSMenuItemValidation {
             return
         }
         if let h = canvasResizeHandle {
-            let r = h.resize(document.canvasRect, to: ip.rounded)
+            let r = event.modifierFlags.contains(.shift)
+                ? h.resizeKeepingAspect(document.canvasRect, to: ip.rounded)
+                : h.resize(document.canvasRect, to: ip.rounded)
             canvasResizePreview = r
             delegate?.canvasSelectionChanged(r.size)
             needsDisplay = true
