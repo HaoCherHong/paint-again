@@ -62,7 +62,7 @@ final class GlassHost: NSView {
         if let veilColor {
             let v = NSView()
             v.wantsLayer = true
-            v.layer?.backgroundColor = veilColor.cgColor
+            v.layer?.backgroundColor = veilColor.cgColor  // re-resolved under the effective appearance in applyColors()
             v.layer?.cornerRadius = cornerRadius
             v.autoresizingMask = [.width, .height]
             content.addSubview(v)
@@ -165,22 +165,20 @@ final class GlassHost: NSView {
             layer?.shadowPath = CGPath(roundedRect: bounds, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
         }
         veil?.frame = content.bounds
-        if !usesGlass {
-            content.frame = backing.bounds
-            applyColors()
-        }
+        if !usesGlass { content.frame = backing.bounds }
+        applyColors()
     }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         pinContentAppearance()
-        if !usesGlass { applyColors() }
-        if let veil, let veilColor { veil.layer?.backgroundColor = veilColor.cgColor }
+        applyColors()
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         pinContentAppearance()
+        applyColors()
     }
 
     /// Liquid Glass flips its content to light or dark to match what is behind it; controls inside the
@@ -189,9 +187,15 @@ final class GlassHost: NSView {
         content.appearance = NSAppearance(named: effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? .darkAqua : .aqua)
     }
 
+    /// Resolves the dynamic colours under this view's effective appearance. `NSColor.cgColor` uses
+    /// `NSAppearance.current`, which outside drawing is the system appearance, not the app's chosen one.
     private func applyColors() {
-        backing.layer?.borderColor = Theme.divider.cgColor
-        if isFlat { backing.layer?.backgroundColor = Theme.flatCard.cgColor }
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            if let veil, let veilColor { veil.layer?.backgroundColor = veilColor.cgColor }
+            guard !usesGlass else { return }
+            backing.layer?.borderColor = Theme.divider.cgColor
+            if isFlat { backing.layer?.backgroundColor = Theme.flatCard.cgColor }
+        }
     }
 }
 

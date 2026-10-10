@@ -15,7 +15,7 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>NSHighResolutionCapable</key><true/>
-    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Hao-Cher Hong</string>
+    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Hao-Jhe Hong</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.graphics-design</string>
     <key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
     <key>ITSAppUsesNonExemptEncryption</key><false/>

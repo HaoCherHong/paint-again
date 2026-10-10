@@ -19,6 +19,8 @@ final class RibbonView: NSView {
     private var outlineButton: RibbonButton!
     private var fillButton: RibbonButton!
     private var layersButton: RibbonButton!
+    private var colorPanelButton: RibbonButton!
+    private var cheatSheetButton: RibbonButton!
     private var palette: ColorPaletteView!
     private var observers: [Any] = []
     private var popover: NSPopover?
@@ -84,8 +86,8 @@ final class RibbonView: NSView {
 
         // Undo / Redo (only when the top toolbar is hidden)
         historyGroup = RibbonGroup(title: "")
-        undoButton = RibbonButton(symbol: "arrow.uturn.backward", tooltip: Theme.tip(L("Undo"), "⌘Z")) { [weak self] in self?.document.undoManager?.undo() }
-        redoButton = RibbonButton(symbol: "arrow.uturn.forward", tooltip: Theme.tip(L("Redo"), "⇧⌘Z")) { [weak self] in self?.document.undoManager?.redo() }
+        undoButton = RibbonButton(symbol: "arrow.uturn.backward", tooltip: Shortcuts.undo.tip()) { [weak self] in self?.document.undoManager?.undo() }
+        redoButton = RibbonButton(symbol: "arrow.uturn.forward", tooltip: Shortcuts.redo.tip()) { [weak self] in self?.document.undoManager?.redo() }
         let historyColumn = NSStackView(views: [undoButton, redoButton])
         historyColumn.orientation = .vertical
         historyColumn.spacing = 2
@@ -98,7 +100,7 @@ final class RibbonView: NSView {
 
         // Selection
         let selection = RibbonGroup(title: L("Selection"))
-        selectionButton = RibbonButton(symbol: "rectangle.dashed", style: .large, tooltip: Theme.tip(L("Select"), "M / L"))
+        selectionButton = RibbonButton(symbol: "rectangle.dashed", style: .large, tooltip: Theme.tip(L("Select"), Shortcuts.rectangleSelect.display + " / " + Shortcuts.freeformSelect.display))
         selectionButton.showsChevron = true
         selectionButton.onClick = { [weak self] in
             guard let self else { return }
@@ -111,7 +113,7 @@ final class RibbonView: NSView {
 
         // Image: crop / remove background · rotate / flip · resize
         let image = RibbonGroup(title: L("Image"))
-        let crop = RibbonButton(symbol: "crop", tooltip: Theme.tip(L("Crop"), "⇧⌘X")) { NSApp.sendAction(#selector(MainWindowController.cropToSelection(_:)), to: nil, from: nil) }
+        let crop = RibbonButton(symbol: "crop", tooltip: Shortcuts.crop.tip(L("Crop"))) { NSApp.sendAction(#selector(MainWindowController.cropToSelection(_:)), to: nil, from: nil) }
         let removeBg = RibbonButton(symbol: "person.crop.rectangle", tooltip: L("Remove background")) { NSApp.sendAction(#selector(MainWindowController.removeBackground(_:)), to: nil, from: nil) }
         let rotate = RibbonButton(symbol: "rotate.right", tooltip: L("Rotate"))
         rotate.showsChevron = true
@@ -121,7 +123,7 @@ final class RibbonView: NSView {
         flip.showsChevron = true
         flip.preferredSize = NSSize(width: 44, height: 28)
         flip.onClick = { [weak self, weak flip] in if let flip { self?.showFlipMenu(from: flip) } }
-        let resize = RibbonButton(symbol: "arrow.up.left.and.arrow.down.right", style: .large, tooltip: Theme.tip(L("Resize and skew"), "⇧⌘R")) {
+        let resize = RibbonButton(symbol: "arrow.up.left.and.arrow.down.right", style: .large, tooltip: Shortcuts.resizeAndSkew.tip(L("Resize and skew"))) {
             NSApp.sendAction(#selector(MainWindowController.resizeAndSkew(_:)), to: nil, from: nil)
         }
         resize.preferredSize = NSSize(width: 40, height: 60)
@@ -133,9 +135,9 @@ final class RibbonView: NSView {
         // Tools
         let tools = RibbonGroup(title: L("Tools"))
         let toolDefs: [(ToolKind, String, String)] = [
-            (.pencil, "pencil", Theme.tip(L("Pencil"), "N")), (.fill, "", Theme.tip(L("Fill"), "G")), (.text, "", Theme.tip(L("Text"), "T")),
-            (.eraser, "eraser", Theme.tip(L("Eraser"), "E")), (.colorPicker, "eyedropper", Theme.tip(L("Color picker"), "I")),
-            (.magnifier, "magnifyingglass", Theme.tip(L("Magnifier"), "Z")),
+            (.pencil, "pencil", Shortcuts.pencil.tip()), (.fill, "", Shortcuts.fill.tip()), (.text, "", Shortcuts.text.tip()),
+            (.eraser, "eraser", Shortcuts.eraser.tip()), (.colorPicker, "eyedropper", Shortcuts.colorPicker.tip() + "\n" + L("Hold ⌥ while painting to pick a color")),
+            (.magnifier, "magnifyingglass", Shortcuts.magnifier.tip()),
         ]
         var buttons: [RibbonButton] = []
         for (kind, symbol, title) in toolDefs {
@@ -161,7 +163,7 @@ final class RibbonView: NSView {
 
         // Brushes
         let brushes = RibbonGroup(title: L("Brushes"))
-        brushButton = RibbonButton(style: .large, tooltip: Theme.tip(L("Brushes"), "B"))
+        brushButton = RibbonButton(style: .large, tooltip: Shortcuts.brush.tip())
         brushButton.showsChevron = true
         brushButton.onClick = { [weak self] in
             guard let self else { return }
@@ -181,7 +183,7 @@ final class RibbonView: NSView {
         let shapes = RibbonGroup(title: L("Shapes"))
         var shapeBtns: [RibbonButton] = []
         for kind in ShapeKind.allCases {
-            let b = RibbonButton(tooltip: Theme.tip(kind.title, "U")) { [weak self] in
+            let b = RibbonButton(tooltip: Shortcuts.shapes.tip(kind.title)) { [weak self] in
                 self?.state.lastShape = kind
                 self?.state.tool = .shape(kind)
             }
@@ -221,13 +223,29 @@ final class RibbonView: NSView {
         stack.addArrangedSubview(colors)
         stack.addArrangedSubview(RibbonSeparator())
 
+        // Color panel
+        let colorPanelGroup = RibbonGroup(title: L("Palette"))
+        colorPanelButton = RibbonButton(symbol: "paintpalette", style: .large, tooltip: Shortcuts.colorPanel.tip()) {
+            NSApp.sendAction(#selector(MainWindowController.toggleColorPanel(_:)), to: nil, from: nil)
+        }
+        colorPanelGroup.content.addArrangedSubview(colorPanelButton)
+        stack.addArrangedSubview(colorPanelGroup)
+
         // Layers
         let layers = RibbonGroup(title: L("Layers"))
-        layersButton = RibbonButton(symbol: "square.3.layers.3d", style: .large, tooltip: Theme.tip(L("Layers"), "⌘L")) {
+        layersButton = RibbonButton(symbol: "square.3.layers.3d", style: .large, tooltip: Shortcuts.layersPanel.tip(L("Layers"))) {
             NSApp.sendAction(#selector(MainWindowController.toggleLayersPanel(_:)), to: nil, from: nil)
         }
         layers.content.addArrangedSubview(layersButton)
         stack.addArrangedSubview(layers)
+
+        // Keyboard shortcuts cheat sheet
+        let shortcutsGroup = RibbonGroup(title: L("Shortcuts"))
+        cheatSheetButton = RibbonButton(symbol: "keyboard", style: .large, tooltip: L("Keyboard Shortcuts")) {
+            NSApp.sendAction(#selector(MainWindowController.toggleCheatSheet(_:)), to: nil, from: nil)
+        }
+        shortcutsGroup.content.addArrangedSubview(cheatSheetButton)
+        stack.addArrangedSubview(shortcutsGroup)
     }
 
     // MARK: - State
@@ -243,6 +261,14 @@ final class RibbonView: NSView {
 
     func setLayersPanelVisible(_ visible: Bool) {
         layersButton.isSelected = visible
+    }
+
+    func setColorPanelVisible(_ visible: Bool) {
+        colorPanelButton.isSelected = visible
+    }
+
+    func setCheatSheetVisible(_ visible: Bool) {
+        cheatSheetButton.isSelected = visible
     }
 
     // MARK: - Menus & popovers

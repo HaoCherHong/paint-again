@@ -75,11 +75,9 @@ final class SelectionTool: Tool {
             canvas.selection = Selection.rectangle(f.rect)
         case .resizing(let h, let startRect):
             guard var f = canvas.floating else { return }
-            var r = h.resize(startRect, to: p.rounded)
-            if event.modifierFlags.contains(.shift) {
-                let aspect = startRect.width / max(1, startRect.height)
-                r.size.height = max(1, (r.width / aspect).rounded())
-            }
+            let r = event.modifierFlags.contains(.shift)
+                ? h.resizeKeepingAspect(startRect, to: p.rounded)
+                : h.resize(startRect, to: p.rounded)
             f.rect = r
             canvas.floating = f
             canvas.selection = Selection.rectangle(r)
@@ -100,6 +98,7 @@ final class SelectionTool: Tool {
             }
         }
         mode = .idle
+        canvas.needsDisplay = true // handles are drawn only once the tool is idle
     }
 
     override func drawOverlay(in ctx: CGContext) {

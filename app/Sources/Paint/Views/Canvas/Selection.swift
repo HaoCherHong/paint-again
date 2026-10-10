@@ -57,11 +57,56 @@ enum Handle: CaseIterable {
         return CGRect(x: min(minX, maxX), y: min(minY, maxY), width: max(1, abs(maxX - minX)), height: max(1, abs(maxY - minY)))
     }
 
+    /// Like `resize`, but keeps `r`'s aspect ratio: a corner scales from the opposite corner, an edge scales
+    /// the other dimension around its centre.
+    func resizeKeepingAspect(_ r: CGRect, to p: CGPoint) -> CGRect {
+        let free = resize(r, to: p)
+        let aspect = r.width / max(1, r.height)
+        var w: CGFloat, h: CGFloat
+        switch self {
+        case .left, .right: w = free.width; h = w / aspect
+        case .top, .bottom: h = free.height; w = h * aspect
+        default:
+            let s = max(free.width / max(1, r.width), free.height / max(1, r.height))
+            w = r.width * s; h = r.height * s
+        }
+        w = max(1, w.rounded()); h = max(1, h.rounded())
+        let x: CGFloat, y: CGFloat
+        switch self {
+        case .left, .topLeft, .bottomLeft: x = r.maxX - w
+        case .right, .topRight, .bottomRight: x = r.minX
+        case .top, .bottom: x = (r.midX - w / 2).rounded()
+        }
+        switch self {
+        case .top, .topLeft, .topRight: y = r.maxY - h
+        case .bottom, .bottomLeft, .bottomRight: y = r.minY
+        case .left, .right: y = (r.midY - h / 2).rounded()
+        }
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
+
+    /// The system frame-resize cursor for this handle; macOS 14 has no diagonal one, so corners use a
+    /// double-arrow symbol there.
     var cursor: NSCursor {
+        if #available(macOS 15, *) {
+            let position: NSCursor.FrameResizePosition
+            switch self {
+            case .topLeft: position = .topLeft
+            case .top: position = .top
+            case .topRight: position = .topRight
+            case .right: position = .right
+            case .bottomRight: position = .bottomRight
+            case .bottom: position = .bottom
+            case .bottomLeft: position = .bottomLeft
+            case .left: position = .left
+            }
+            return .frameResize(position: position, directions: .all)
+        }
         switch self {
         case .top, .bottom: return .resizeUpDown
         case .left, .right: return .resizeLeftRight
-        default: return .crosshair
+        case .topLeft, .bottomRight: return Theme.cursor(symbol: "arrow.up.left.and.arrow.down.right", anchor: .center)
+        case .topRight, .bottomLeft: return Theme.cursor(symbol: "arrow.up.right.and.arrow.down.left", anchor: .center)
         }
     }
 }

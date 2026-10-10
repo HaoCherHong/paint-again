@@ -37,6 +37,14 @@ class Tool: NSObject {
     /// Whether the tool currently owns a floating object that a click elsewhere would commit.
     var hasPendingObject: Bool { false }
 
+    /// `p` moved onto the nearest of 16 directions (22.5° steps) from `anchor`, keeping its distance.
+    static func snapped16(_ p: CGPoint, from anchor: CGPoint) -> CGPoint {
+        let step = CGFloat.pi / 8
+        let angle = (atan2(p.y - anchor.y, p.x - anchor.x) / step).rounded() * step
+        let length = anchor.distance(to: p)
+        return CGPoint(x: anchor.x + cos(angle) * length, y: anchor.y + sin(angle) * length)
+    }
+
     static func make(_ kind: ToolKind, canvas: CanvasView) -> Tool {
         switch kind {
         case .selectRectangle, .selectFreeform: return SelectionTool(kind: kind, canvas: canvas)
@@ -68,4 +76,26 @@ extension CGRect {
         self.init(x: min(p1.x, p2.x), y: min(p1.y, p2.y), width: abs(p2.x - p1.x), height: abs(p2.y - p1.y))
     }
     var center: CGPoint { CGPoint(x: midX, y: midY) }
+}
+
+/// Shift-drag constraint for freehand tools: once the pointer has moved a few pixels from the anchor, the
+/// direction snaps to the nearest of 16 (22.5° steps) and every later point is projected onto that line,
+/// so painting continues along it in either direction.
+struct StrokeLineLock {
+    let anchor: CGPoint
+    private var direction: CGPoint?
+
+    init(anchor: CGPoint) { self.anchor = anchor }
+
+    /// Where to paint for pointer `p`, or nil while the direction is still undecided.
+    mutating func constrain(_ p: CGPoint) -> CGPoint? {
+        if direction == nil {
+            guard anchor.distance(to: p) >= 3 else { return nil }
+            let s = Tool.snapped16(p, from: anchor) - anchor
+            direction = s / s.length
+        }
+        guard let d = direction else { return nil }
+        let t = (p.x - anchor.x) * d.x + (p.y - anchor.y) * d.y
+        return anchor + d * t
+    }
 }
