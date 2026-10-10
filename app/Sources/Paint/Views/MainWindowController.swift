@@ -168,7 +168,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         case "g": state.tool = .fill
         case "i": state.tool = .colorPicker
         case "t": state.tool = .text
-        case "m": state.tool = .selectRectangle
+        case "m", "s": state.tool = .selectRectangle
         case "l": state.tool = .selectFreeform
         case "z": state.tool = .magnifier
         case "u": state.tool = .shape(state.lastShape)
@@ -242,7 +242,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         _ = stripButton("square.and.arrow.up", L("Share")) { [weak self] in self?.shareImage(nil) }
         _ = stripSeparator()
         undoButton = stripButton("arrow.uturn.backward", Theme.tip(L("Undo"), "⌘Z")) { [weak self] in self?.paintDocument.undoManager?.undo() }
-        redoButton = stripButton("arrow.uturn.forward", Theme.tip(L("Redo"), "⇧⌘Z")) { [weak self] in self?.paintDocument.undoManager?.redo() }
+        redoButton = stripButton("arrow.uturn.forward", Theme.tip(L("Redo"), "⇧⌘Z / ⌘Y")) { [weak self] in self?.paintDocument.undoManager?.redo() }
         settingsButton = RibbonButton(symbol: "gearshape", tooltip: Theme.tip(L("Settings"), "⌘,"))
         settingsButton.preferredSize = NSSize(width: 30, height: 26)
         settingsButton.onClick = { PreferencesWindowController.shared.show() }

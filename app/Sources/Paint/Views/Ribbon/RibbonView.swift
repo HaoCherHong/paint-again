@@ -86,7 +86,7 @@ final class RibbonView: NSView {
         // Undo / Redo (only when the top toolbar is hidden)
         historyGroup = RibbonGroup(title: "")
         undoButton = RibbonButton(symbol: "arrow.uturn.backward", tooltip: Theme.tip(L("Undo"), "⌘Z")) { [weak self] in self?.document.undoManager?.undo() }
-        redoButton = RibbonButton(symbol: "arrow.uturn.forward", tooltip: Theme.tip(L("Redo"), "⇧⌘Z")) { [weak self] in self?.document.undoManager?.redo() }
+        redoButton = RibbonButton(symbol: "arrow.uturn.forward", tooltip: Theme.tip(L("Redo"), "⇧⌘Z / ⌘Y")) { [weak self] in self?.document.undoManager?.redo() }
         let historyColumn = NSStackView(views: [undoButton, redoButton])
         historyColumn.orientation = .vertical
         historyColumn.spacing = 2
@@ -99,7 +99,7 @@ final class RibbonView: NSView {
 
         // Selection
         let selection = RibbonGroup(title: L("Selection"))
-        selectionButton = RibbonButton(symbol: "rectangle.dashed", style: .large, tooltip: Theme.tip(L("Select"), "M / L"))
+        selectionButton = RibbonButton(symbol: "rectangle.dashed", style: .large, tooltip: Theme.tip(L("Select"), "M / S / L"))
         selectionButton.showsChevron = true
         selectionButton.onClick = { [weak self] in
             guard let self else { return }

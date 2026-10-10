@@ -864,9 +864,9 @@ final class CanvasView: NSView, NSMenuItemValidation {
         tool.mouseUp(at: imagePoint(fromView: p), button: .secondary, event: event)
     }
 
-    /// Option + scroll zooms around the pointer (Photoshop); plain scrolling pans.
+    /// Option + scroll or Command + scroll zooms around the pointer; plain scrolling pans.
     override func scrollWheel(with event: NSEvent) {
-        if event.modifierFlags.contains(.option) {
+        if !event.modifierFlags.intersection([.option, .command]).isEmpty {
             let p = imagePoint(fromView: convert(event.locationInWindow, from: nil))
             let factor = pow(1.0025, -event.scrollingDeltaY * (event.hasPreciseScrollingDeltas ? 1 : 10))
             setZoom(zoom * factor, anchor: p)

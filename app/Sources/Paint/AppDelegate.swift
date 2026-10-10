@@ -154,6 +154,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editMenu.removeAllItems()
         editMenu.addItem(item(L("Undo"), Selector(("undo:")), "z"))
         editMenu.addItem(item(L("Redo"), Selector(("redo:")), "Z"))
+        let redoAlternate = item(L("Redo"), Selector(("redo:")), "y")   // ⌘Y as a second Redo key
+        redoAlternate.isHidden = true
+        redoAlternate.allowsKeyEquivalentWhenHidden = true
+        editMenu.addItem(redoAlternate)
         editMenu.addItem(.separator())
         editMenu.addItem(item(L("Cut"), #selector(NSText.cut(_:)), "x"))
         editMenu.addItem(item(L("Copy"), #selector(NSText.copy(_:)), "c"))
