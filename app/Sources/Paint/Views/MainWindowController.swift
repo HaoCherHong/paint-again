@@ -118,9 +118,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, CanvasVi
         observers.append(NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak self] _ in self?.updateRulers() })
         observers.append(NotificationCenter.default.addObserver(forName: .NSUndoManagerCheckpoint, object: document.undoManager, queue: .main) { [weak self] _ in self?.refreshUndo() })
         observers.append(NotificationCenter.default.addObserver(forName: .settingsChanged, object: nil, queue: .main) { [weak self] _ in self?.applySettings() })
-        if ProcessInfo.processInfo.environment["PAINT_SHOW_SHORTCUTS"] == "1" { // development aid; after init so didSet runs
-            DispatchQueue.main.async { [weak self] in self?.showsCheatSheet = true }
-        }
         applySettings()
         statusBar.setImageSize(document.canvasSize)
         statusBar.setZoom(1)
