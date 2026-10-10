@@ -6,7 +6,30 @@ extension Notification.Name {
 
 /// User-facing tool settings shared across the ribbon and the canvas of one document window.
 final class ToolState {
-    var tool: ToolKind = .pencil { didSet { changed() } }
+    var tool: ToolKind = .pencil {
+        didSet {
+            let from = Self.sizeSlot(oldValue), to = Self.sizeSlot(tool)
+            if from != to {
+                sizes[from] = (lineWidth, opacity)
+                let next = sizes[to] ?? Self.defaultSize
+                lineWidth = next.width
+                opacity = next.opacity
+            }
+            changed()
+        }
+    }
+    /// Size and opacity remembered per tool slot (see `sizeSlot`), restored when the tool is selected again.
+    private var sizes: [String: (width: CGFloat, opacity: CGFloat)] = [:]
+    private static let defaultSize: (width: CGFloat, opacity: CGFloat) = (3, 1)
+
+    /// One slot per Ribbon tool: all brushes share one, all shapes share one.
+    private static func sizeSlot(_ kind: ToolKind) -> String {
+        switch kind {
+        case .brush: return "brush"
+        case .shape: return "shape"
+        default: return "\(kind)"
+        }
+    }
     var lastBrush: BrushKind = .brush
     var lastShape: ShapeKind = .rectangle
     var color1: NSColor = .black { didSet { changed() } }
@@ -14,7 +37,7 @@ final class ToolState {
     /// The well that palette clicks and the colour editors change.
     var colorTarget: MouseButton = .primary { didSet { changed() } }
     var lineWidth: CGFloat = 3 { didSet { lineWidth = max(1, min(100, lineWidth.rounded())); changed() } }
-    /// Paint opacity 0…1 applied to pencil, brushes, shapes, text, fill and eraser.
+    /// Paint opacity 0…1 applied to pencil, brushes, shapes, text, fill and eraser (remembered per tool slot).
     var opacity: CGFloat = 1 { didSet { opacity = max(0, min(1, opacity)); changed() } }
     var shapeStroke: ShapeStrokeStyle = .solid { didSet { changed() } }
     var shapeFill: ShapeFillStyle = .none { didSet { changed() } }
