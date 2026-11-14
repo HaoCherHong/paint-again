@@ -28,7 +28,7 @@ const year = new Date().getFullYear();
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {LANGS.map((l) => <link rel="alternate" hreflang={l} href={new URL(`/${l}/${path}`, SITE_URL).href} />)}
-    <link rel="alternate" hreflang="x-default" href={new URL(`/zh-Hant/${path}`, SITE_URL).href} />
+    <link rel="alternate" hreflang="x-default" href={new URL(`/en/${path}`, SITE_URL).href} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={APP_NAME} />
     <meta property="og:title" content={fullTitle} />

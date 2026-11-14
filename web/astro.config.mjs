@@ -12,15 +12,15 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [
     sitemap({
-      // `/` only meta-refreshes to /zh-Hant/ (and Cloudflare 302s it). Listing it would
-      // put a redirect in <loc> and make two URLs claim hreflang="zh-Hant", which voids
-      // the whole annotation group.
+      // `/` only redirects (client-side, by browser language). Listing it would put a
+      // redirect in <loc> and, since the i18n option reads an unprefixed URL as the default
+      // locale, make two URLs claim hreflang="zh-Hant", which voids the whole annotation group.
       filter: (page) => page !== ROOT,
       i18n: { defaultLocale: 'zh-Hant', locales: { 'zh-Hant': 'zh-Hant', en: 'en' } },
-      // Match the <head>: Traditional Chinese is what an unmatched locale gets.
+      // Match the <head>: English is what an unmatched locale gets.
       serialize(item) {
-        const zhHant = item.links?.find((link) => link.lang === 'zh-Hant');
-        if (zhHant) item.links = [...(item.links ?? []), { lang: 'x-default', url: zhHant.url }];
+        const en = item.links?.find((link) => link.lang === 'en');
+        if (en) item.links = [...(item.links ?? []), { lang: 'x-default', url: en.url }];
         return item;
       },
     }),
