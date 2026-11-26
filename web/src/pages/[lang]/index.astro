@@ -14,6 +14,8 @@ const lang = Astro.params.lang as Lang;
 // Flip to true once public/videos/timelapse.mp4 exists.
 const SHOW_TIMELAPSE = false;
 const tr = t(lang);
+// FAQ entries in display order.
+const FAQ = [5, 1, 2, 3, 4, 6] as const;
 
 // Keyboard shortcuts shown in the Shortcuts feature: keys rendered as keycaps, joined by `+` when
 // `combo` is set, followed by a mouse action (click / drag) when `action` is set.
@@ -110,7 +112,10 @@ const jsonLd = {
             <p class="display text-sm italic muted">01</p>
             <h3 class="display mt-2 text-3xl sm:text-4xl">{tr('f.familiar.title')}</h3>
           </div>
-          <p class="leading-relaxed muted md:col-span-6 md:col-start-7 md:pt-8">{tr('f.familiar.body')}</p>
+          <div class="md:col-span-6 md:col-start-7 md:pt-8">
+            <p class="leading-relaxed muted">{tr('f.familiar.body')}</p>
+            <p class="mt-3 text-sm muted">{tr('f.familiar.audience')}</p>
+          </div>
         </div>
         <Shot name="ribbon" alt={tr('f.familiar.alt')} width={2560} height={480} class="mt-8 block w-full rounded-sm hairline" />
       </div>
@@ -169,7 +174,7 @@ const jsonLd = {
     <div class="grid gap-8 md:grid-cols-12">
       <h2 class="display text-3xl md:col-span-4">{tr('faq.title')}</h2>
       <dl class="divide-y divide-line dark:divide-line-dark md:col-span-7 md:col-start-6">
-        {[1, 2, 3, 4].map((i) => (
+        {FAQ.map((i) => (
           <div class="py-5">
             <dt class="display text-lg">{tr(`faq.q${i}` as any)}</dt>
             <dd class="mt-1.5 leading-relaxed muted">{tr(`faq.a${i}` as any)}</dd>
