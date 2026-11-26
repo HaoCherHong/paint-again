@@ -1,13 +1,25 @@
 ---
-// Language-less root: send visitors to the default locale (Cloudflare also 302s via public/_redirects).
+// Language-less root: picks a locale from the browser's first preferred language.
+// Any Chinese (Traditional or Simplified, which has no locale of its own) goes to /zh-Hant/,
+// everything else to /en/. Without JavaScript, and for crawlers, it falls back to /en/.
+// Kept out of the sitemap, so this canonical is the only thing telling crawlers where `/` belongs;
+// it has to be absolute for that.
+import { SITE_URL } from '../site';
+const canonical = new URL('/en/', SITE_URL).href;
 ---
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=/zh-Hant/" />
-    <link rel="canonical" href="/zh-Hant/" />
+    <script is:inline>
+      (function () {
+        var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase();
+        location.replace(/^zh(-|$)/.test(lang) ? '/zh-Hant/' : '/en/');
+      })();
+    </script>
+    <noscript><meta http-equiv="refresh" content="0; url=/en/" /></noscript>
+    <link rel="canonical" href={canonical} />
     <title>Paint Again</title>
   </head>
-  <body><a href="/zh-Hant/">繁體中文</a> · <a href="/en/">English</a></body>
+  <body><a href="/en/">English</a> · <a href="/zh-Hant/" lang="zh-Hant">繁體中文</a></body>
 </html>

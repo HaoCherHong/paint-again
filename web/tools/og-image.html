@@ -1,0 +1,36 @@
+<!doctype html>
+<!--
+  Source for public/og.jpg, the social card. Render it at exactly 1200 x 630:
+
+    chrome --headless=new --window-size=1200,630 --screenshot=og.png tools/og-image.html
+    # then: 1200x630 JPEG, quality 88, no progressive (some scrapers dislike it)
+
+  Deliberately language-neutral: the card's title and description come from the
+  og: tags, so repeating a tagline here would only duplicate them.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        /* The icon tile's graphite, lit from the top left so the icon sits in its own light. */
+        background: radial-gradient(120% 120% at 22% 12%, #30343D 0%, #1B1E24 55%, #131519 100%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 40px;
+        font-family: "New York", ui-serif, Georgia, serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      /* The PNG carries its own tile, corners and shadow; only depth is added. */
+      img { width: 232px; height: 232px; filter: drop-shadow(0 26px 50px rgb(0 0 0 / 0.55)); }
+      h1 { font-size: 82px; font-weight: 500; letter-spacing: -0.015em; color: #F4F2EE; line-height: 1; }
+      .rule { width: 104px; height: 5px; border-radius: 999px; background: linear-gradient(90deg, #E7593B, #F6B73F); }
+    </style>
+  </head>
+  <body>
+    <img src="../public/icon-256.png" alt="" />
+    <h1>Paint Again</h1>
+    <div class="rule"></div>
+  </body>
+</html>
